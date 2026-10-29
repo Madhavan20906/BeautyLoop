@@ -1,0 +1,399 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: beauty
+    description: BeautyLoop shopping experience
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /beauty/status:
+    get:
+      operationId: getBeautyStatus
+      tags: [beauty]
+      summary: Get BeautyLoop service availability
+      description: Reports which product capabilities are configured. No skin results or try-on previews are synthesized.
+      responses:
+        "200":
+          description: Current service and catalog availability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BeautyStatus"
+  /beauty/products:
+    get:
+      operationId: getBeautyProducts
+      tags: [beauty]
+      summary: List verified catalog products
+      responses:
+        "200":
+          description: Products and their manufacturer sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BeautyProduct"
+  /beauty/foundations:
+    get:
+      operationId: getBeautyFoundations
+      tags: [beauty]
+      summary: List sourced foundation products and shades
+      description: Returns manufacturer-listed foundation shade names and retailer price details. Display colors are approximate illustrations, not official swatches or guaranteed shade matches.
+      responses:
+        "200":
+          description: Foundation products, shade options, and sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BeautyFoundationProduct"
+  /beauty/compare:
+    post:
+      operationId: compareBeautyProducts
+      tags: [beauty]
+      summary: Compare products using explicit shopper preferences
+      description: Uses only published product attributes and user-selected filters; it does not infer treatment effectiveness from skin measurements.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BeautyCompareInput"
+      responses:
+        "200":
+          description: Products matching the supplied preferences, with explicit reasons
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BeautyCompareResult"
+  /beauty/tasks:
+    post:
+      operationId: createBeautyTask
+      tags: [beauty]
+      summary: Start a YouCam beauty task
+      description: Uploads a user-consented image to the configured YouCam API and starts one selected AI task. Successful tasks may consume YouCam units.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BeautyTaskInput"
+      responses:
+        "202":
+          description: YouCam task started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BeautyTaskAccepted"
+        "400":
+          description: Invalid task input
+        "503":
+          description: YouCam API key is not configured
+        "502":
+          description: YouCam could not start the task
+  /beauty/tasks/{jobId}:
+    get:
+      operationId: getBeautyTask
+      tags: [beauty]
+      summary: Get the status and result of a YouCam task
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current task status or result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BeautyTaskResult"
+        "404":
+          description: Task not found or expired
+        "502":
+          description: YouCam task status could not be retrieved
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    BeautyStatus:
+      type: object
+      properties:
+        skinTone:
+          type: string
+          enum: [not_configured, ready]
+        skinAnalysis:
+          type: string
+          enum: [not_configured, ready]
+        virtualTryOn:
+          type: string
+          enum: [not_configured, ready]
+        catalog:
+          type: string
+          enum: [partial, ready]
+      required: [skinTone, skinAnalysis, virtualTryOn, catalog]
+    BeautyTaskFeature:
+      type: string
+      enum: [skin-tone, skin-analysis, foundation-try-on]
+    BeautyTaskInput:
+      type: object
+      properties:
+        feature:
+          $ref: "#/components/schemas/BeautyTaskFeature"
+        imageBase64:
+          type: string
+          minLength: 4
+          maxLength: 11200000
+          description: Base64-encoded JPEG or PNG uploaded by the user for this one task.
+        mimeType:
+          type: string
+          enum: [image/jpeg, image/png]
+        foundationColor:
+          type: string
+          pattern: "^#[A-Fa-f0-9]{6}$"
+        colorIntensity:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 80
+        coverageIntensity:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 65
+        glowIntensity:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 45
+      required: [feature, imageBase64, mimeType]
+    BeautyTaskAccepted:
+      type: object
+      properties:
+        jobId:
+          type: string
+        feature:
+          $ref: "#/components/schemas/BeautyTaskFeature"
+        status:
+          type: string
+          enum: [running]
+      required: [jobId, feature, status]
+    BeautySkinInsight:
+      type: object
+      properties:
+        type:
+          type: string
+        region:
+          type: ["string", "null"]
+        score:
+          type: ["number", "null"]
+        displayScore:
+          type: ["integer", "null"]
+      required: [type, region, score, displayScore]
+    BeautyTaskResult:
+      type: object
+      properties:
+        jobId:
+          type: string
+        feature:
+          $ref: "#/components/schemas/BeautyTaskFeature"
+        status:
+          type: string
+          enum: [running, success, error]
+        skinColor:
+          type: ["string", "null"]
+          pattern: "^#[A-Fa-f0-9]{6}$"
+        skinColorName:
+          type: ["string", "null"]
+        insights:
+          type: array
+          items:
+            $ref: "#/components/schemas/BeautySkinInsight"
+        previewUrl:
+          type: ["string", "null"]
+          format: uri
+        errorMessage:
+          type: ["string", "null"]
+      required: [jobId, feature, status, skinColor, skinColorName, insights, previewUrl, errorMessage]
+    BeautyProduct:
+      type: object
+      properties:
+        id:
+          type: string
+        brand:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          enum: [serum, moisturizer]
+        priceINR:
+          type: integer
+          minimum: 0
+        size:
+          type: ["string", "null"]
+        keyIngredients:
+          type: array
+          items:
+            type: string
+        verifiedAttributes:
+          type: array
+          items:
+            type: string
+        unknownAttributes:
+          type: array
+          items:
+            type: string
+        productUrl:
+          type: string
+          format: uri
+        sourceName:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        priceObservedAt:
+          type: string
+          format: date
+      required:
+        - id
+        - brand
+        - name
+        - category
+        - priceINR
+        - verifiedAttributes
+        - unknownAttributes
+        - productUrl
+        - sourceName
+        - sourceUrl
+        - priceObservedAt
+    BeautyFoundationShade:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        displayColorHex:
+          type: string
+          pattern: "^#[A-Fa-f0-9]{6}$"
+          description: Approximate screen illustration only; not an official manufacturer color value or calibrated swatch.
+      required: [id, name, displayColorHex]
+    BeautyFoundationProduct:
+      type: object
+      properties:
+        id:
+          type: string
+        brand:
+          type: string
+        name:
+          type: string
+        size:
+          type: string
+        priceINR:
+          type: integer
+          minimum: 0
+          description: Retailer price observed for the specific shade stated in priceNote.
+        listPriceINR:
+          type: integer
+          minimum: 0
+        priceNote:
+          type: string
+        priceObservedAt:
+          type: string
+          format: date
+        sourceName:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        retailerSourceName:
+          type: string
+        retailerSourceUrl:
+          type: string
+          format: uri
+        shades:
+          type: array
+          items:
+            $ref: "#/components/schemas/BeautyFoundationShade"
+      required:
+        - id
+        - brand
+        - name
+        - size
+        - priceINR
+        - listPriceINR
+        - priceNote
+        - priceObservedAt
+        - sourceName
+        - sourceUrl
+        - retailerSourceName
+        - retailerSourceUrl
+        - shades
+    BeautyCompareInput:
+      type: object
+      properties:
+        maxPriceINR:
+          type: integer
+          minimum: 0
+        category:
+          type: string
+          enum: [serum, moisturizer]
+        preferredAttributes:
+          type: array
+          items:
+            type: string
+            enum: [fragrance_free, non_comedogenic, essential_oil_free, oil_free]
+          uniqueItems: true
+      required: []
+    BeautyProductMatch:
+      type: object
+      properties:
+        product:
+          $ref: "#/components/schemas/BeautyProduct"
+        matchReasons:
+          type: array
+          items:
+            type: string
+        unconfirmedPreferences:
+          type: array
+          items:
+            type: string
+      required: [product, matchReasons, unconfirmedPreferences]
+    BeautyCompareResult:
+      type: object
+      properties:
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/BeautyProductMatch"
+        noMatchReason:
+          type: ["string", "null"]
+      required: [matches, noMatchReason]

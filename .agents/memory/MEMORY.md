@@ -1,0 +1,1 @@
+- [BeautyLoop hackathon scope](beautyloop-hackathon-scope.md) — build a consent-led YouCam beauty decision flow with honest results and source-backed product facts.

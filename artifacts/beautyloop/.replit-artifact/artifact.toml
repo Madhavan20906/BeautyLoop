@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "BeautyLoop"
+description = "A beauty decision experience that connects consent-based skin insight, transparent product comparisons, supported virtual try-on, and a shareable confidence summary."
+version = "1.0.0"
+id = "artifacts/beautyloop"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22416
+
+[services.development]
+run = "pnpm --filter @workspace/beautyloop run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/beautyloop", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/beautyloop/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22416"
+BASE_PATH = "/"
