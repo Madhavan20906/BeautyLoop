@@ -10,6 +10,9 @@ export type BeautyCompareInputCategory = typeof BeautyCompareInputCategory[keyof
 
 
 export const BeautyCompareInputCategory = {
+  cleanser: 'cleanser',
   serum: 'serum',
   moisturizer: 'moisturizer',
+  sunscreen: 'sunscreen',
+  lipstick: 'lipstick',
 } as const;

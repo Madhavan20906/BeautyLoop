@@ -11,11 +11,19 @@ export interface BeautyTaskOutput {
   status: BeautyTaskStatus;
   skinColor: string | null;
   skinColorName: string | null;
+  lipColor: string | null;
+  eyeColor: string | null;
+  eyeColorName: string | null;
+  hairColor: string | null;
+  hairColorName: string | null;
+  undertone: "warm" | "cool" | "neutral" | "olive" | null;
+  vitalityScore: number | null;
   insights: Array<{
     type: string;
     region: string | null;
     score: number | null;
     displayScore: number | null;
+    status: string | null;
   }>;
   previewUrl: string | null;
   errorMessage: string | null;
@@ -47,7 +55,8 @@ export class YouCamServiceError extends Error {
   }
 }
 
-const apiBaseUrl = "https://yce-api-01.makeupar.com";
+const apiBaseUrl =
+  process.env.YOUCAM_BASE_URL?.trim() || "https://yce-api-01.makeupar.com";
 const jobRetentionMs = 24 * 60 * 60 * 1000;
 const jobs = new Map<string, YouCamJob>();
 
@@ -201,7 +210,7 @@ async function uploadImage(
   const uploadResponse = await fetch(parsedUploadUrl, {
     method,
     headers: uploadHeaders,
-    body: image,
+    body: new Uint8Array(image),
     signal: AbortSignal.timeout(45_000),
   });
   if (!uploadResponse.ok) {
@@ -215,11 +224,65 @@ async function uploadImage(
   return fileId;
 }
 
+function calculateUndertone(hex: string | null): "warm" | "cool" | "neutral" | "olive" | null {
+  if (!hex) return null;
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!match) return null;
+  const num = parseInt(match[1], 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+
+  const yellowVsBlue = (r + g) / 2 - b;
+  const redVsGreen = r - g;
+
+  if (g > r * 0.92 && yellowVsBlue > 20) return "olive";
+  if (yellowVsBlue > 35 && redVsGreen < 42) return "warm";
+  if (redVsGreen > 42 || b > g * 0.82) return "cool";
+  return "neutral";
+}
+
+function calculateVitalityScore(insights: BeautyTaskOutput["insights"]): number | null {
+  if (!insights.length) return null;
+  let penaltySum = 0;
+  let penaltyCount = 0;
+  let bonusSum = 0;
+  let bonusCount = 0;
+
+  for (const item of insights) {
+    const val = item.displayScore ?? (typeof item.score === "number" ? Math.round(item.score * 100) : 40);
+    if (["pore", "acne", "wrinkle", "oiliness", "redness", "eye_bag", "texture"].includes(item.type)) {
+      penaltySum += val;
+      penaltyCount += 1;
+    } else if (["radiance", "moisture", "firmness"].includes(item.type)) {
+      bonusSum += val;
+      bonusCount += 1;
+    }
+  }
+
+  const avgPenalty = penaltyCount ? penaltySum / penaltyCount : 30;
+  const avgBonus = bonusCount ? bonusSum / bonusCount : 70;
+  const score = Math.round(100 - avgPenalty * 0.55 + avgBonus * 0.35 - 5);
+  return Math.min(98, Math.max(45, score));
+}
+
+function getInsightStatus(type: string, score: number | null, displayScore: number | null): string {
+  const val = displayScore ?? (score ? Math.round(score * 100) : 50);
+  if (["radiance", "moisture", "firmness"].includes(type)) {
+    if (val >= 70) return "Optimal";
+    if (val >= 45) return "Balanced";
+    return "Hydration needed";
+  }
+  if (val <= 25) return "Calm / Clear";
+  if (val <= 55) return "Moderate";
+  return "Attention recommended";
+}
+
 function taskRequest(input: BeautyTaskInput, fileId: string): { path: string; body: unknown } {
   if (input.feature === "skin-tone") {
     return {
       path: "/s2s/v2.0/task/skin-tone-analysis",
-      body: { src_file_id: fileId, face_angle_strictness_level: "high" },
+      body: { src_file_id: fileId, face_angle_strictness_level: "medium" },
     };
   }
   if (input.feature === "skin-analysis") {
@@ -227,11 +290,78 @@ function taskRequest(input: BeautyTaskInput, fileId: string): { path: string; bo
       path: "/s2s/v2.0/task/skin-analysis",
       body: {
         src_file_id: fileId,
-        dst_actions: ["pore", "texture", "acne", "wrinkle"],
+        dst_actions: [
+          "pore",
+          "texture",
+          "acne",
+          "wrinkle",
+          "moisture",
+          "oiliness",
+          "redness",
+          "radiance",
+          "firmness",
+          "eye_bag",
+        ],
         format: "json",
       },
     };
   }
+
+  if (input.feature === "lip-try-on") {
+    return {
+      path: "/s2s/v2.0/task/makeup-vto",
+      body: {
+        src_file_id: fileId,
+        effects: [
+          {
+            category: "lip",
+            palettes: [
+              {
+                color: input.lipColor || "#B36551",
+                intensity: input.colorIntensity ?? 75,
+                texture: input.lipTexture || "matte",
+              },
+            ],
+          },
+        ],
+        version: "1.0",
+      },
+    };
+  }
+
+  if (input.feature === "complete-look") {
+    const effects: Array<Record<string, unknown>> = [];
+    effects.push({
+      category: "foundation",
+      palettes: [
+        {
+          color: input.foundationColor || "#D9AD8D",
+          colorIntensity: input.colorIntensity ?? 65,
+          coverageIntensity: input.coverageIntensity ?? 60,
+          glowIntensity: input.glowIntensity ?? 35,
+        },
+      ],
+    });
+    effects.push({
+      category: "lip",
+      palettes: [
+        {
+          color: input.lipColor || "#B36551",
+          intensity: input.colorIntensity ?? 75,
+          texture: input.lipTexture || "matte",
+        },
+      ],
+    });
+    return {
+      path: "/s2s/v2.0/task/makeup-vto",
+      body: {
+        src_file_id: fileId,
+        effects,
+        version: "1.0",
+      },
+    };
+  }
+
   if (!input.foundationColor) {
     throw new YouCamServiceError(
       "Choose a foundation tone before starting the virtual try-on.",
@@ -249,9 +379,9 @@ function taskRequest(input: BeautyTaskInput, fileId: string): { path: string; bo
           palettes: [
             {
               color: input.foundationColor,
-              colorIntensity: input.colorIntensity,
-              coverageIntensity: input.coverageIntensity,
-              glowIntensity: input.glowIntensity,
+              colorIntensity: input.colorIntensity ?? 65,
+              coverageIntensity: input.coverageIntensity ?? 60,
+              glowIntensity: input.glowIntensity ?? 35,
             },
           ],
         },
@@ -350,8 +480,9 @@ function normalizeInsights(data: Record<string, unknown> | null): BeautyTaskOutp
     const displayScore =
       typeof rawDisplayScore === "number" && Number.isInteger(rawDisplayScore)
         ? rawDisplayScore
-        : null;
-    return [{ type, region, score, displayScore }];
+        : score !== null ? Math.round(score * 100) : null;
+    const status = getInsightStatus(type, score, displayScore);
+    return [{ type, region, score, displayScore, status }];
   });
 }
 
@@ -362,6 +493,13 @@ function initialResult(job: YouCamJob): BeautyTaskOutput {
     status: "running",
     skinColor: null,
     skinColorName: null,
+    lipColor: null,
+    eyeColor: null,
+    eyeColorName: null,
+    hairColor: null,
+    hairColorName: null,
+    undertone: null,
+    vitalityScore: null,
     insights: [],
     previewUrl: null,
     errorMessage: null,
@@ -381,10 +519,15 @@ export async function getYouCamJob(jobId: string): Promise<BeautyTaskOutput | nu
     return initialResult(job);
   }
   if (providerStatus === "error") {
-    const message =
-      getString(data, "error_message") ??
-      getString(data, "error") ??
-      "YouCam could not complete this task. Try a clear, front-facing image.";
+    const rawErr = getString(data, "error_message") ?? getString(data, "error") ?? "";
+    let message = "YouCam could not complete this task. Try a clear, front-facing image.";
+    if (rawErr.includes("too small")) {
+      message = "Your face must fill at least 60% of the photo for clinical skin analysis. Zoom in closer or use the camera alignment guide.";
+    } else if (rawErr.includes("not facing forward")) {
+      message = "Please look directly at the camera with your face straight on for clinical accuracy.";
+    } else if (rawErr) {
+      message = rawErr;
+    }
     const result = { ...initialResult(job), status: "error" as const, errorMessage: message };
     job.terminalResult = result;
     return result;
@@ -400,6 +543,13 @@ export async function getYouCamJob(jobId: string): Promise<BeautyTaskOutput | nu
   const results = asRecord(data?.results);
   let skinColor: string | null = null;
   let skinColorName: string | null = null;
+  let lipColor: string | null = null;
+  let eyeColor: string | null = null;
+  let eyeColorName: string | null = null;
+  let hairColor: string | null = null;
+  let hairColorName: string | null = null;
+  let undertone: BeautyTaskOutput["undertone"] = null;
+  let vitalityScore: number | null = null;
   let previewUrl: string | null = null;
   let insights: BeautyTaskOutput["insights"] = [];
 
@@ -407,8 +557,15 @@ export async function getYouCamJob(jobId: string): Promise<BeautyTaskOutput | nu
     const color = asRecord(results?.color);
     skinColor = getString(color, "skin_color");
     skinColorName = getString(color, "skin_color_name");
+    lipColor = getString(color, "lip_color");
+    eyeColor = getString(color, "eye_color");
+    eyeColorName = getString(color, "eye_color_name");
+    hairColor = getString(color, "hair_color");
+    hairColorName = getString(color, "hair_color_name");
+    undertone = calculateUndertone(skinColor);
   } else if (job.feature === "skin-analysis") {
     insights = normalizeInsights(data);
+    vitalityScore = calculateVitalityScore(insights);
   } else {
     const rawUrl =
       getString(results, "url") ??
@@ -424,6 +581,13 @@ export async function getYouCamJob(jobId: string): Promise<BeautyTaskOutput | nu
     status: "success",
     skinColor,
     skinColorName,
+    lipColor,
+    eyeColor,
+    eyeColorName,
+    hairColor,
+    hairColorName,
+    undertone,
+    vitalityScore,
     insights,
     previewUrl,
     errorMessage: null,

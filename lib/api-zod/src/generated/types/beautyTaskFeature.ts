@@ -13,4 +13,6 @@ export const BeautyTaskFeature = {
   'skin-tone': 'skin-tone',
   'skin-analysis': 'skin-analysis',
   'foundation-try-on': 'foundation-try-on',
+  'lip-try-on': 'lip-try-on',
+  'complete-look': 'complete-look',
 } as const;

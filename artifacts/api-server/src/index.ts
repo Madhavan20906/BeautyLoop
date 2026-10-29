@@ -1,7 +1,21 @@
+import path from "node:path";
+import fs from "node:fs";
+
+try {
+  // Check local .env first, then root workspace .env
+  if (fs.existsSync(".env")) {
+    process.loadEnvFile(".env");
+  } else if (fs.existsSync(path.resolve(process.cwd(), "../../.env"))) {
+    process.loadEnvFile(path.resolve(process.cwd(), "../../.env"));
+  }
+} catch {
+  // .env file is optional if env vars are provided directly
+}
+
 import app from "./app";
 import { logger } from "./lib/logger";
 
-const rawPort = process.env["PORT"];
+const rawPort = process.env["PORT"] || "5000";
 
 if (!rawPort) {
   throw new Error(

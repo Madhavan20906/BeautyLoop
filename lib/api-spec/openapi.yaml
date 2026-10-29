@@ -161,7 +161,7 @@ components:
       required: [skinTone, skinAnalysis, virtualTryOn, catalog]
     BeautyTaskFeature:
       type: string
-      enum: [skin-tone, skin-analysis, foundation-try-on]
+      enum: [skin-tone, skin-analysis, foundation-try-on, lip-try-on, complete-look]
     BeautyTaskInput:
       type: object
       properties:
@@ -178,6 +178,13 @@ components:
         foundationColor:
           type: string
           pattern: "^#[A-Fa-f0-9]{6}$"
+        lipColor:
+          type: string
+          pattern: "^#[A-Fa-f0-9]{6}$"
+        lipTexture:
+          type: string
+          enum: [matte, glossy, shimmer]
+          default: matte
         colorIntensity:
           type: integer
           minimum: 0
@@ -216,6 +223,8 @@ components:
           type: ["number", "null"]
         displayScore:
           type: ["integer", "null"]
+        status:
+          type: ["string", "null"]
       required: [type, region, score, displayScore]
     BeautyTaskResult:
       type: object
@@ -232,6 +241,24 @@ components:
           pattern: "^#[A-Fa-f0-9]{6}$"
         skinColorName:
           type: ["string", "null"]
+        lipColor:
+          type: ["string", "null"]
+          pattern: "^#[A-Fa-f0-9]{6}$"
+        eyeColor:
+          type: ["string", "null"]
+          pattern: "^#[A-Fa-f0-9]{6}$"
+        eyeColorName:
+          type: ["string", "null"]
+        hairColor:
+          type: ["string", "null"]
+          pattern: "^#[A-Fa-f0-9]{6}$"
+        hairColorName:
+          type: ["string", "null"]
+        undertone:
+          type: ["string", "null"]
+          enum: [warm, cool, neutral, olive, null]
+        vitalityScore:
+          type: ["integer", "null"]
         insights:
           type: array
           items:
@@ -253,7 +280,7 @@ components:
           type: string
         category:
           type: string
-          enum: [serum, moisturizer]
+          enum: [cleanser, serum, moisturizer, sunscreen, lipstick]
         priceINR:
           type: integer
           minimum: 0
@@ -288,6 +315,12 @@ components:
         - name
         - category
         - priceINR
+        - verifiedAttributes
+        - unknownAttributes
+        - productUrl
+        - sourceName
+        - sourceUrl
+        - priceObservedAt
         - verifiedAttributes
         - unknownAttributes
         - productUrl
@@ -365,7 +398,7 @@ components:
           minimum: 0
         category:
           type: string
-          enum: [serum, moisturizer]
+          enum: [cleanser, serum, moisturizer, sunscreen, lipstick]
         preferredAttributes:
           type: array
           items:
