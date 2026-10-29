@@ -40,7 +40,7 @@ export const GetBeautyProductsResponseItem = zod.object({
   "id": zod.string(),
   "brand": zod.string(),
   "name": zod.string(),
-  "category": zod.enum(['serum', 'moisturizer']),
+  "category": zod.enum(['cleanser', 'serum', 'moisturizer', 'sunscreen', 'lipstick']),
   "priceINR": zod.number().int().min(getBeautyProductsResponsePriceINRMin),
   "size": zod.string().nullish(),
   "keyIngredients": zod.array(zod.string()).optional(),
@@ -97,7 +97,7 @@ export const compareBeautyProductsBodyMaxPriceINRMin = 0;
 
 export const CompareBeautyProductsBody = zod.object({
   "maxPriceINR": zod.number().int().min(compareBeautyProductsBodyMaxPriceINRMin).optional(),
-  "category": zod.enum(['serum', 'moisturizer']).optional(),
+  "category": zod.enum(['cleanser', 'serum', 'moisturizer', 'sunscreen', 'lipstick']).optional(),
   "preferredAttributes": zod.array(zod.enum(['fragrance_free', 'non_comedogenic', 'essential_oil_free', 'oil_free'])).optional()
 })
 
@@ -111,7 +111,7 @@ export const CompareBeautyProductsResponse = zod.object({
   "id": zod.string(),
   "brand": zod.string(),
   "name": zod.string(),
-  "category": zod.enum(['serum', 'moisturizer']),
+  "category": zod.enum(['cleanser', 'serum', 'moisturizer', 'sunscreen', 'lipstick']),
   "priceINR": zod.number().int().min(compareBeautyProductsResponseMatchesItemProductPriceINRMin),
   "size": zod.string().nullish(),
   "keyIngredients": zod.array(zod.string()).optional(),
@@ -137,6 +137,8 @@ export const createBeautyTaskBodyImageBase64Min = 4;
 export const createBeautyTaskBodyImageBase64Max = 11200000;
 
 export const createBeautyTaskBodyFoundationColorRegExp = new RegExp('^#[A-Fa-f0-9]{6}$');
+export const createBeautyTaskBodyLipColorRegExp = new RegExp('^#[A-Fa-f0-9]{6}$');
+export const createBeautyTaskBodyLipTextureDefault = `matte`;
 export const createBeautyTaskBodyColorIntensityDefault = 80;
 export const createBeautyTaskBodyColorIntensityMin = 0;
 export const createBeautyTaskBodyColorIntensityMax = 100;
@@ -152,10 +154,12 @@ export const createBeautyTaskBodyGlowIntensityMax = 100;
 
 
 export const CreateBeautyTaskBody = zod.object({
-  "feature": zod.enum(['skin-tone', 'skin-analysis', 'foundation-try-on']),
+  "feature": zod.enum(['skin-tone', 'skin-analysis', 'foundation-try-on', 'lip-try-on', 'complete-look']),
   "imageBase64": zod.string().min(createBeautyTaskBodyImageBase64Min).max(createBeautyTaskBodyImageBase64Max).describe('Base64-encoded JPEG or PNG uploaded by the user for this one task.'),
   "mimeType": zod.enum(['image/jpeg', 'image/png']),
   "foundationColor": zod.string().regex(createBeautyTaskBodyFoundationColorRegExp).optional(),
+  "lipColor": zod.string().regex(createBeautyTaskBodyLipColorRegExp).optional(),
+  "lipTexture": zod.enum(['matte', 'glossy', 'shimmer']).default(createBeautyTaskBodyLipTextureDefault),
   "colorIntensity": zod.number().int().min(createBeautyTaskBodyColorIntensityMin).max(createBeautyTaskBodyColorIntensityMax).default(createBeautyTaskBodyColorIntensityDefault),
   "coverageIntensity": zod.number().int().min(createBeautyTaskBodyCoverageIntensityMin).max(createBeautyTaskBodyCoverageIntensityMax).default(createBeautyTaskBodyCoverageIntensityDefault),
   "glowIntensity": zod.number().int().min(createBeautyTaskBodyGlowIntensityMin).max(createBeautyTaskBodyGlowIntensityMax).default(createBeautyTaskBodyGlowIntensityDefault)
@@ -163,7 +167,7 @@ export const CreateBeautyTaskBody = zod.object({
 
 export const CreateBeautyTaskResponse = zod.object({
   "jobId": zod.string(),
-  "feature": zod.enum(['skin-tone', 'skin-analysis', 'foundation-try-on']),
+  "feature": zod.enum(['skin-tone', 'skin-analysis', 'foundation-try-on', 'lip-try-on', 'complete-look']),
   "status": zod.enum(['running'])
 })
 
@@ -176,19 +180,30 @@ export const GetBeautyTaskParams = zod.object({
 })
 
 export const getBeautyTaskResponseSkinColorRegExp = new RegExp('^#[A-Fa-f0-9]{6}$');
+export const getBeautyTaskResponseLipColorRegExp = new RegExp('^#[A-Fa-f0-9]{6}$');
+export const getBeautyTaskResponseEyeColorRegExp = new RegExp('^#[A-Fa-f0-9]{6}$');
+export const getBeautyTaskResponseHairColorRegExp = new RegExp('^#[A-Fa-f0-9]{6}$');
 
 
 export const GetBeautyTaskResponse = zod.object({
   "jobId": zod.string(),
-  "feature": zod.enum(['skin-tone', 'skin-analysis', 'foundation-try-on']),
+  "feature": zod.enum(['skin-tone', 'skin-analysis', 'foundation-try-on', 'lip-try-on', 'complete-look']),
   "status": zod.enum(['running', 'success', 'error']),
   "skinColor": zod.string().regex(getBeautyTaskResponseSkinColorRegExp).nullable(),
   "skinColorName": zod.string().nullable(),
+  "lipColor": zod.string().regex(getBeautyTaskResponseLipColorRegExp).nullish(),
+  "eyeColor": zod.string().regex(getBeautyTaskResponseEyeColorRegExp).nullish(),
+  "eyeColorName": zod.string().nullish(),
+  "hairColor": zod.string().regex(getBeautyTaskResponseHairColorRegExp).nullish(),
+  "hairColorName": zod.string().nullish(),
+  "undertone": zod.union([zod.literal('warm'),zod.literal('cool'),zod.literal('neutral'),zod.literal('olive'),zod.literal(null)]).nullish(),
+  "vitalityScore": zod.number().int().nullish(),
   "insights": zod.array(zod.object({
   "type": zod.string(),
   "region": zod.string().nullable(),
   "score": zod.number().nullable(),
-  "displayScore": zod.number().int().nullable()
+  "displayScore": zod.number().int().nullable(),
+  "status": zod.string().nullish()
 })),
   "previewUrl": zod.string().url().nullable(),
   "errorMessage": zod.string().nullable()

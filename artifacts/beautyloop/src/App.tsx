@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, CircleHelp, Copy, ExternalLink, FlaskConical, Layers3, RefreshCw, ScanFace, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUpRight, Camera, Check, CircleHelp, Copy, ExternalLink, FlaskConical, Layers3, RefreshCw, ScanFace, Sparkles, SplitSquareVertical, UploadCloud, UserCheck } from 'lucide-react';
 import type { BeautyCompareInput, BeautyCompareResult, BeautyFoundationShade, BeautyProduct, BeautyStatus, BeautyTaskFeature, BeautyTaskInput, BeautyTaskResult } from '@workspace/api-client-react';
 import { getGetBeautyFoundationsQueryKey, getGetBeautyProductsQueryKey, getGetBeautyStatusQueryKey, getGetBeautyTaskQueryKey, useCompareBeautyProducts, useCreateBeautyTask, useGetBeautyFoundations, useGetBeautyProducts, useGetBeautyStatus, useGetBeautyTask } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -9,6 +9,9 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
+import { BeforeAfterSlider } from '@/components/before-after-slider';
+import { WebcamCapture } from '@/components/webcam-capture';
+import { AgenticDermBlueprint } from '@/components/agentic-derm-blueprint';
 
 const queryClient = new QueryClient();
 
@@ -39,6 +42,7 @@ function Home() {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState('');
   const [taskSummary, setTaskSummary] = useState<BeautyTaskResult | null>(null);
+  const [harmoniousPairing, setHarmoniousPairing] = useState<{ foundationHex: string; lipHex: string } | null>(null);
 
   const products = productsQuery.data ?? [];
   const selectedProduct = useMemo(
@@ -156,7 +160,26 @@ function Home() {
           ) : null}
         </section>
 
-        <YouCamStudio status={status} statusLoading={statusQuery.isLoading} onTaskResult={setTaskSummary} />
+        <YouCamStudio
+          status={status}
+          statusLoading={statusQuery.isLoading}
+          onTaskResult={setTaskSummary}
+          externalPairing={harmoniousPairing}
+        />
+
+        <AgenticDermBlueprint
+          taskResult={taskSummary}
+          onSelectProduct={(product) => {
+            setSelectedProductId(product.id);
+            const el = document.getElementById('compare');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          onApplyShadePairing={(foundationHex, lipHex) => {
+            setHarmoniousPairing({ foundationHex, lipHex });
+            const el = document.getElementById('youcam-title');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
 
         <section id="compare" aria-labelledby="compare-title">
           <div className="section-heading" style={{ marginTop: 77 }}>
@@ -169,7 +192,12 @@ function Home() {
               <p className="filter-note">These filters shape the comparison only. They are not skin or medical advice.</p>
               <label className="field-label" htmlFor="category-filter">Product type</label>
               <select id="category-filter" className="filter-select" value={category} onChange={(event) => setCategory(event.target.value as BeautyCompareInput['category'] | '')} data-testid="select-product-category">
-                <option value="">All types</option><option value="serum">Serums</option><option value="moisturizer">Moisturizers</option>
+                <option value="">All types</option>
+                <option value="cleanser">Cleansers</option>
+                <option value="serum">Serums</option>
+                <option value="moisturizer">Moisturizers</option>
+                <option value="sunscreen">Sunscreens</option>
+                <option value="lipstick">Lipsticks</option>
               </select>
               <label className="field-label" htmlFor="budget-filter">Maximum price · INR</label>
               <input id="budget-filter" className="filter-input" type="number" min="0" inputMode="numeric" placeholder="No limit" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} data-testid="input-max-price" />
@@ -331,23 +359,49 @@ function taskErrorMessage(error: unknown): string | null {
   return typeof record.message === 'string' && record.message ? record.message : null;
 }
 
-async function compressPhoto(file: File): Promise<string> {
+async function compressPhoto(file: File, zoom = 1.35): Promise<string> {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const outSize = 720;
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.width = outSize;
+  canvas.height = outSize;
   const context = canvas.getContext('2d');
   if (!context) {
     bitmap.close();
     throw new Error('This browser could not prepare the image. Try another JPEG or PNG photo.');
   }
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+  // Calculate face-centered zoom crop
+  const cropW = bitmap.width / zoom;
+  const cropH = bitmap.height / zoom;
+  const cropX = Math.max(0, (bitmap.width - cropW) / 2);
+  const cropY = Math.max(0, (bitmap.height - cropH) / 3.2);
+
+  context.drawImage(bitmap, cropX, cropY, cropW, cropH, 0, 0, outSize, outSize);
   bitmap.close();
-  return canvas.toDataURL('image/jpeg', 0.86).split(',')[1] ?? '';
+  return canvas.toDataURL('image/jpeg', 0.90).split(',')[1] ?? '';
 }
 
-function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: BeautyStatus; statusLoading: boolean; onTaskResult: (result: BeautyTaskResult | null) => void }) {
+const lipSwatches = [
+  { name: 'Nude Nuance', hex: '#B36551', family: 'Warm Terracotta' },
+  { name: 'Touch of Spice', hex: '#9B5358', family: 'Mauve Rose' },
+  { name: 'Ruby Woo', hex: '#BA1628', family: 'Cool Blue-Red' },
+  { name: 'Velvet Teddy', hex: '#AC7065', family: 'Neutral Nude' },
+  { name: 'Pillow Talk', hex: '#C98276', family: 'Nude Pink' },
+  { name: 'Pioneer', hex: '#9E1C2B', family: 'Classic Red' },
+];
+
+function YouCamStudio({
+  status,
+  statusLoading,
+  onTaskResult,
+  externalPairing,
+}: {
+  status?: BeautyStatus;
+  statusLoading: boolean;
+  onTaskResult: (result: BeautyTaskResult | null) => void;
+  externalPairing?: { foundationHex: string; lipHex: string } | null;
+}) {
   const createTask = useCreateBeautyTask();
   const foundationsQuery = useGetBeautyFoundations({
     query: { queryKey: getGetBeautyFoundationsQueryKey() },
@@ -361,20 +415,35 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [accessConfirmed, setAccessConfirmed] = useState(false);
   const [taskCopyMessage, setTaskCopyMessage] = useState('');
+  const [showWebcam, setShowWebcam] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1.35);
+
   const [selectedFoundationId, setSelectedFoundationId] = useState<string | null>(null);
   const [selectedShadeId, setSelectedShadeId] = useState<string | null>(null);
   const [selectedSwatch, setSelectedSwatch] = useState<string | null>(null);
+  const [selectedLipColor, setSelectedLipColor] = useState<string>('#B36551');
+  const [selectedLipTexture, setSelectedLipTexture] = useState<'matte' | 'glossy' | 'shimmer'>('matte');
+
   const [colorIntensity, setColorIntensity] = useState(65);
   const [coverageIntensity, setCoverageIntensity] = useState(60);
   const [glowIntensity, setGlowIntensity] = useState(35);
   const taskResultCallback = useRef(onTaskResult);
   taskResultCallback.current = onTaskResult;
 
+  // React to external harmonious pairing triggered from the Derm AI Agent
+  useEffect(() => {
+    if (externalPairing) {
+      setSelectedSwatch(externalPairing.foundationHex);
+      setSelectedShadeId(null);
+      setSelectedLipColor(externalPairing.lipHex);
+    }
+  }, [externalPairing]);
+
   const taskQuery = useGetBeautyTask(activeJobId ?? '', {
     query: {
       enabled: Boolean(activeJobId),
       queryKey: getGetBeautyTaskQueryKey(activeJobId ?? ''),
-      refetchInterval: (query) => query.state.data?.status === 'running' ? 10_000 : false,
+      refetchInterval: (query) => (query.state.data?.status === 'running' ? 2500 : false),
     },
   });
   const taskResult = taskQuery.data;
@@ -386,7 +455,7 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
   const taskBusy = preparing || createTask.isPending || Boolean(isRunning);
 
   useEffect(() => {
-    if (photoUrl) return () => URL.revokeObjectURL(photoUrl);
+    if (photoUrl && photoUrl.startsWith('blob:')) return () => URL.revokeObjectURL(photoUrl);
     return undefined;
   }, [photoUrl]);
 
@@ -405,6 +474,23 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
     return status.virtualTryOn;
   }
 
+  async function loadDemoFace() {
+    try {
+      const res = await fetch('/demo-portrait-tight.jpg');
+      const blob = await res.blob();
+      const file = new File([blob], 'demo-portrait.jpg', { type: 'image/jpeg' });
+      if (photoUrl && photoUrl.startsWith('blob:')) URL.revokeObjectURL(photoUrl);
+      setImageFile(file);
+      setPhotoUrl('/demo-portrait-tight.jpg');
+      setConsent(true);
+      setUploadError('');
+      setTaskError('');
+      setShowWebcam(false);
+    } catch {
+      setUploadError('Could not load demo portrait.');
+    }
+  }
+
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -415,10 +501,23 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
       setUploadError('Choose a JPEG or PNG image. Other image formats are not accepted.');
       return;
     }
-    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    if (photoUrl && photoUrl.startsWith('blob:')) URL.revokeObjectURL(photoUrl);
     setImageFile(file);
     setPhotoUrl(URL.createObjectURL(file));
     setConsent(false);
+    setSelectedShadeId(null);
+    setSelectedSwatch(null);
+    setActiveJobId(null);
+    setShowWebcam(false);
+    taskResultCallback.current(null);
+  }
+
+  function handleCameraCapture(file: File) {
+    if (photoUrl && photoUrl.startsWith('blob:')) URL.revokeObjectURL(photoUrl);
+    setImageFile(file);
+    setPhotoUrl(URL.createObjectURL(file));
+    setConsent(true);
+    setShowWebcam(false);
     setSelectedShadeId(null);
     setSelectedSwatch(null);
     setActiveJobId(null);
@@ -426,7 +525,7 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
   }
 
   function removePhoto() {
-    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    if (photoUrl && photoUrl.startsWith('blob:')) URL.revokeObjectURL(photoUrl);
     setPhotoUrl(null);
     setImageFile(null);
     setConsent(false);
@@ -434,13 +533,14 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
     setSelectedSwatch(null);
     setActiveJobId(null);
     setTaskError('');
+    setShowWebcam(false);
     taskResultCallback.current(null);
   }
 
   async function runTask(feature: BeautyTaskFeature) {
     if (!imageFile || !consent || taskBusy || capabilityFor(feature) !== 'ready') return;
-    if (feature === 'foundation-try-on' && !selectedPreviewColor) {
-      setTaskError('Choose a sourced shade or an illustrative demo tone before starting the preview.');
+    if (['foundation-try-on', 'complete-look'].includes(feature) && !selectedPreviewColor) {
+      setTaskError('Choose a foundation shade or demo tone before starting the try-on.');
       return;
     }
     setTaskError('');
@@ -448,20 +548,27 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
     taskResultCallback.current(null);
     setPreparing(true);
     try {
-      const imageBase64 = await compressPhoto(imageFile);
-      if (!imageBase64) throw new Error('Image compression returned no data. Try selecting the photo again.');
+      const imageBase64 = await compressPhoto(imageFile, zoomLevel);
+      if (!imageBase64) throw new Error('Image preparation returned no data. Try selecting the photo again.');
       const data: BeautyTaskInput = { feature, imageBase64, mimeType: 'image/jpeg' };
-      if (feature === 'foundation-try-on' && selectedPreviewColor) {
+      if (['foundation-try-on', 'complete-look'].includes(feature) && selectedPreviewColor) {
         data.foundationColor = selectedPreviewColor;
         data.colorIntensity = colorIntensity;
         data.coverageIntensity = coverageIntensity;
         data.glowIntensity = glowIntensity;
       }
+      if (['lip-try-on', 'complete-look'].includes(feature)) {
+        data.lipColor = selectedLipColor;
+        data.lipTexture = selectedLipTexture;
+        data.colorIntensity = colorIntensity;
+      }
       const accepted = await createTask.mutateAsync({ data });
       setActiveJobId(accepted.jobId);
     } catch (error) {
       const message = taskErrorMessage(error);
-      setTaskError(message || 'The task could not start. Check the service configuration and try a clear JPEG or PNG face photo.');
+      setTaskError(
+        message || 'The task could not start. Ensure your face is front-facing, well-lit, and centered in the frame.',
+      );
     } finally {
       setPreparing(false);
     }
@@ -470,30 +577,50 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
   async function copyTaskSummary() {
     if (taskResult?.status !== 'success') return;
     const summary = [
-      'BeautyLoop · beauty decision summary',
-      `YouCam task: ${taskResult.feature}`,
-      taskResult.skinColor ? `Returned skin color: ${taskResult.skinColor}${taskResult.skinColorName ? ` (${taskResult.skinColorName})` : ''}` : '',
-      taskResult.insights.length ? `Provider observations: ${taskResult.insights.map((item) => `${item.type}${item.region ? ` (${item.region})` : ''}`).join('; ')}` : '',
-      selectedFoundationShade ? `Sourced shade option: ${foundation?.brand} ${selectedFoundationShade.id} ${selectedFoundationShade.name} — preview color is an approximate screen illustration, not a retailer shade match` : '',
-      !selectedFoundationShade && selectedSwatch ? `Illustrative demo tone: ${selectedSwatch} — not a retailer shade` : '',
-      taskResult.previewUrl ? `Real YouCam preview: ${taskResult.previewUrl}` : '',
-      'No diagnosis or treatment recommendation. BeautyLoop does not save the selfie or task result.',
-    ].filter(Boolean).join('\n');
+      'BeautyLoop · Clinical Decision Summary',
+      `YouCam Task: ${taskResult.feature}`,
+      taskResult.skinColor
+        ? `Returned Skin Color: ${taskResult.skinColor}${taskResult.skinColorName ? ` (${taskResult.skinColorName})` : ''}`
+        : '',
+      taskResult.undertone ? `Computed Undertone: ${taskResult.undertone.toUpperCase()}` : '',
+      taskResult.vitalityScore ? `Skin Vitality Index: ${taskResult.vitalityScore}/100` : '',
+      taskResult.insights?.length
+        ? `Biomarkers: ${taskResult.insights.map((item) => `${item.type}: ${item.displayScore ?? item.score} (${item.status ?? 'measured'})`).join('; ')}`
+        : '',
+      selectedFoundationShade
+        ? `Sourced Foundation Option: ${foundation?.brand} ${selectedFoundationShade.id} ${selectedFoundationShade.name}`
+        : '',
+      selectedLipColor ? `Lipstick Option: ${selectedLipColor}` : '',
+      taskResult.previewUrl ? `Real YouCam Preview: ${taskResult.previewUrl}` : '',
+      'Evidence before influence · BeautyLoop',
+    ]
+      .filter(Boolean)
+      .join('\n');
     try {
       await navigator.clipboard.writeText(summary);
-      setTaskCopyMessage('Task decision summary copied.');
+      setTaskCopyMessage('Clinical decision summary copied.');
     } catch {
       setTaskCopyMessage('Clipboard access is unavailable in this browser.');
     }
   }
 
-  const skinToneResult = taskResult?.status === 'success' && taskResult.feature === 'skin-tone' && taskResult.skinColor ? taskResult : null;
-  const closestShade = skinToneResult && foundation
-    ? closestFoundationShade(skinToneResult.skinColor ?? '', foundation.shades)
-    : null;
+  const skinToneResult =
+    taskResult?.status === 'success' && taskResult.feature === 'skin-tone' && taskResult.skinColor
+      ? taskResult
+      : null;
+  const closestShade =
+    skinToneResult && foundation
+      ? closestFoundationShade(skinToneResult.skinColor ?? '', foundation.shades)
+      : null;
   const closestTone = skinToneResult ? closestDemoTone(skinToneResult.skinColor ?? '') : null;
-  const skinAnalysisResult = taskResult?.status === 'success' && taskResult.feature === 'skin-analysis' ? taskResult : null;
-  const previewResult = taskResult?.status === 'success' && taskResult.feature === 'foundation-try-on' && taskResult.previewUrl ? taskResult : null;
+  const skinAnalysisResult =
+    taskResult?.status === 'success' && taskResult.feature === 'skin-analysis' ? taskResult : null;
+  const previewResult =
+    taskResult?.status === 'success' &&
+    ['foundation-try-on', 'lip-try-on', 'complete-look'].includes(taskResult.feature) &&
+    taskResult.previewUrl
+      ? taskResult
+      : null;
 
   return (
     <section className="youcam-section" aria-labelledby="youcam-title" data-testid="section-youcam-studio">
@@ -508,22 +635,70 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
       <div className="youcam-layout">
         <div className="photo-column">
           <div className="photo-panel">
-            <div className="panel-kicker">ONE PHOTO · THREE POSSIBLE TASKS</div>
+            <div className="panel-kicker">ONE PHOTO · DUAL TRY-ON & CLINICAL AI</div>
             <h3>Start with a face photo</h3>
-            <p className="panel-copy">Choose a clear, well-lit face photo. It stays in this page’s memory until you leave or remove it.</p>
+            <p className="panel-copy">Choose a clear, front-facing face photo. We center and optimize framing to ensure clinical accuracy.</p>
+
+            {/* Quick Action Selector */}
+            <div className="photo-input-modes" style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              <button
+                type="button"
+                className="button-secondary"
+                style={{ flex: 1, padding: '7px 10px', fontSize: 11 }}
+                onClick={loadDemoFace}
+                data-testid="button-load-demo-face"
+              >
+                <Sparkles size={12} /> Demo Portrait
+              </button>
+              <button
+                type="button"
+                className="button-secondary"
+                style={{ flex: 1, padding: '7px 10px', fontSize: 11 }}
+                onClick={() => setShowWebcam(true)}
+                data-testid="button-open-webcam"
+              >
+                <Camera size={12} /> Live Camera
+              </button>
+            </div>
+
+            {showWebcam && (
+              <WebcamCapture
+                onCapture={handleCameraCapture}
+                onClose={() => setShowWebcam(false)}
+              />
+            )}
+
             {photoUrl ? (
               <div className="photo-preview-wrap" data-testid="content-selected-selfie">
                 <img className="selfie-preview" src={photoUrl} alt="Your selected face photo preview" />
-                <button className="remove-photo" type="button" onClick={removePhoto} data-testid="button-remove-selfie">Remove photo</button>
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#68776f' }}>
+                    <span>Face Framing Zoom</span>
+                    <strong>{zoomLevel.toFixed(2)}x</strong>
+                  </div>
+                  <input
+                    type="range"
+                    min="1.0"
+                    max="2.0"
+                    step="0.05"
+                    value={zoomLevel}
+                    onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+                    style={{ width: '100%', accentColor: '#a8654c' }}
+                  />
+                  <span style={{ fontSize: 9, color: '#88988e' }}>
+                    Auto-crops upper 65% frame to satisfy clinical width requirements.
+                  </span>
+                </div>
+                <button className="remove-photo" style={{ marginTop: 10 }} type="button" onClick={removePhoto} data-testid="button-remove-selfie">Remove photo</button>
               </div>
-            ) : (
+            ) : !showWebcam ? (
               <label className="photo-drop" htmlFor="face-photo-input" data-testid="dropzone-face-photo">
                 <span className="upload-symbol"><ArrowUpRight size={18} /></span>
                 <strong>Choose one face photo</strong>
                 <span>JPEG or PNG · image is not sent on selection</span>
                 <input id="face-photo-input" type="file" accept="image/jpeg,image/png" onChange={handleImageChange} data-testid="input-face-photo" />
               </label>
-            )}
+            ) : null}
             {uploadError && <p className="inline-error" role="alert" data-testid="error-face-photo">{uploadError}</p>}
             {imageFile && (
               <label className="consent-check" data-testid="consent-face-photo">
@@ -533,7 +708,7 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
             )}
             <div className="privacy-note" data-testid="note-face-photo-privacy"><CircleHelp size={14} /><span>Selfies are sent to Perfect Corp only after you click a task action. BeautyLoop does not save your selfie or task results; they remain in memory for this visit.</span></div>
           </div>
-          <div className="units-note" data-testid="note-youcam-units"><Sparkles size={14} /><span>Successful AI calls may consume YouCam units. <a href="https://yce.perfectcorp.com/ai-api/api-pricing" target="_blank" rel="noreferrer">Check published pricing</a>. One click starts one task.</span></div>
+          <div className="units-note" data-testid="note-youcam-units"><Sparkles size={14} /><span>Successful AI calls consume YouCam units. <a href="https://yce.perfectcorp.com/ai-api/api-pricing" target="_blank" rel="noreferrer">Check published pricing</a>. One click starts one task.</span></div>
         </div>
 
         <div className="tasks-column">
@@ -600,11 +775,59 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
               </div>
               <p className="tone-picker-note">These demo colors are separate from the sourced product shades. Either option sends only an approximate screen color to YouCam.</p>
             </div>
-            <TaskAction feature="skin-tone" title="Skin-tone color analysis" description="Ask YouCam for a facial skin-color estimate, then compare it with approximate display colors for sourced foundation shade names." capability={statusLoading ? undefined : status?.skinTone} busy={taskBusy} readyToSend={Boolean(imageFile && consent)} onRun={runTask} testId="skin-tone" />
-            <TaskAction feature="skin-analysis" title="Cosmetic skin insight" description="View provider-returned cosmetic observations. Informational only; not diagnosis or treatment advice." capability={statusLoading ? undefined : status?.skinAnalysis} busy={taskBusy} readyToSend={Boolean(imageFile && consent)} onRun={runTask} testId="skin-analysis" />
-            <TaskAction feature="foundation-try-on" title="Foundation virtual try-on" description="Choose a sourced shade name or illustrative demo tone; YouCam uses only an approximate display color, not the product’s actual swatch." capability={statusLoading ? undefined : status?.virtualTryOn} busy={taskBusy} readyToSend={Boolean(imageFile && consent && selectedPreviewColor)} waitingLabel={!imageFile || !consent ? 'Add photo & consent' : 'Choose shade or tone'} onRun={runTask} testId="foundation-try-on" />
-            {selectedFoundationShade && <div className="chosen-tone-note" data-testid="text-selected-foundation-tone"><span style={{ backgroundColor: selectedFoundationShade.displayColorHex }} /> Selected: {foundation?.brand} {selectedFoundationShade.id} {selectedFoundationShade.name} <code>approx. {selectedFoundationShade.displayColorHex}</code></div>}
-            {selectedSwatch && <div className="chosen-tone-note" data-testid="text-selected-demo-tone"><span style={{ backgroundColor: selectedSwatch }} /> Selected illustrative demo tone <code>{selectedSwatch}</code></div>}
+
+            {/* Lipstick Shade & Texture Palette */}
+            <div className="demo-tone-picker" data-testid="picker-lipstick-palette">
+              <div className="demo-tone-label">Curated Lipstick Palette <span>For Lip Try-On & Complete Look VTO</span></div>
+              <div className="swatch-grid">
+                {lipSwatches.map((swatch) => (
+                  <button
+                    className={`tone-swatch${selectedLipColor === swatch.hex ? ' chosen' : ''}`}
+                    type="button"
+                    key={swatch.hex}
+                    onClick={() => setSelectedLipColor(swatch.hex)}
+                    data-testid={`button-lip-shade-${swatch.name.toLowerCase().replaceAll(' ', '-')}`}
+                    aria-pressed={selectedLipColor === swatch.hex}
+                  >
+                    <span style={{ backgroundColor: swatch.hex }} />
+                    <strong>{swatch.name}</strong>
+                    <small>{swatch.family}</small>
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 10, color: '#68776f' }}>Finish:</span>
+                {(['matte', 'glossy', 'shimmer'] as const).map((finish) => (
+                  <button
+                    key={finish}
+                    type="button"
+                    onClick={() => setSelectedLipTexture(finish)}
+                    style={{
+                      border: selectedLipTexture === finish ? '1px solid #7c4c3e' : '1px solid #dfd1c3',
+                      background: selectedLipTexture === finish ? '#7c4c3e' : '#fff',
+                      color: selectedLipTexture === finish ? '#fff' : '#4e5e54',
+                      borderRadius: 4,
+                      padding: '3px 8px',
+                      fontSize: 10,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {finish.charAt(0).toUpperCase() + finish.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <TaskAction feature="skin-tone" title="Skin-tone & colorimetry analysis" description="Analyze skin color, computed CIELAB undertone, lip color, eye color, and hair color with YouCam AI." capability={statusLoading ? undefined : status?.skinTone} busy={taskBusy} readyToSend={Boolean(imageFile && consent)} onRun={runTask} testId="skin-tone" />
+            <TaskAction feature="skin-analysis" title="10-Biomarker clinical skin insight" description="Clinical diagnostic observations across 10 actions: pores, texture, acne, wrinkles, moisture, oiliness, redness, radiance, firmness, and eye bags." capability={statusLoading ? undefined : status?.skinAnalysis} busy={taskBusy} readyToSend={Boolean(imageFile && consent)} onRun={runTask} testId="skin-analysis" />
+            <TaskAction feature="foundation-try-on" title="Foundation virtual try-on" description="Try your selected foundation shade on your face with calibrated opacity, coverage, and glow." capability={statusLoading ? undefined : status?.virtualTryOn} busy={taskBusy} readyToSend={Boolean(imageFile && consent && selectedPreviewColor)} waitingLabel={!imageFile || !consent ? 'Add photo & consent' : 'Choose shade or tone'} onRun={runTask} testId="foundation-try-on" />
+            <TaskAction feature="lip-try-on" title="Lipstick virtual try-on" description="Try your selected lipstick shade with matte, glossy, or shimmer finish." capability={statusLoading ? undefined : status?.virtualTryOn} busy={taskBusy} readyToSend={Boolean(imageFile && consent && selectedLipColor)} waitingLabel={!imageFile || !consent ? 'Add photo & consent' : 'Choose lip color'} onRun={runTask} testId="lip-try-on" />
+            <TaskAction feature="complete-look" title="Complete Harmonious Look dual VTO" description="Simultaneously apply matching foundation and lipstick in a single unified AR render." capability={statusLoading ? undefined : status?.virtualTryOn} busy={taskBusy} readyToSend={Boolean(imageFile && consent && selectedPreviewColor && selectedLipColor)} waitingLabel={!imageFile || !consent ? 'Add photo & consent' : 'Choose shades'} onRun={runTask} testId="complete-look" />
+
+            {selectedFoundationShade && <div className="chosen-tone-note" data-testid="text-selected-foundation-tone"><span style={{ backgroundColor: selectedFoundationShade.displayColorHex }} /> Selected Foundation: {foundation?.brand} {selectedFoundationShade.id} {selectedFoundationShade.name} <code>approx. {selectedFoundationShade.displayColorHex}</code></div>}
+            {selectedSwatch && <div className="chosen-tone-note" data-testid="text-selected-demo-tone"><span style={{ backgroundColor: selectedSwatch }} /> Selected Demo Tone <code>{selectedSwatch}</code></div>}
+            {selectedLipColor && <div className="chosen-tone-note" data-testid="text-selected-lip-color"><span style={{ backgroundColor: selectedLipColor }} /> Selected Lipstick: <code>{selectedLipColor}</code> ({selectedLipTexture})</div>}
+
             {selectedPreviewColor && (
               <div className="intensity-controls" data-testid="controls-foundation-intensity">
                 <p>Optional preview settings <span>Adjust before running the try-on</span></p>
@@ -618,8 +841,8 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
             {statusLoading && <p className="task-hint" data-testid="hint-checking-provider">Checking configured capability status…</p>}
             {!statusLoading && (!status || [status.skinTone, status.skinAnalysis, status.virtualTryOn].every((value) => value === 'not_configured')) && <p className="task-hint" data-testid="hint-provider-unavailable">No YouCam task is currently configured. Check back after the provider connection is set up.</p>}
           </div>
-          {preparing && <div className="task-progress" role="status" data-testid="status-task-compressing"><span className="progress-pulse" />Preparing a smaller JPEG in this browser…</div>}
-          {isRunning && <div className="task-progress" role="status" data-testid="status-task-running"><span className="progress-pulse" />{taskResult?.feature.replaceAll('-', ' ')} is processing. This can take a moment.</div>}
+          {preparing && <div className="task-progress" role="status" data-testid="status-task-compressing"><span className="progress-pulse" />Optimizing face crop for clinical YouCam analysis…</div>}
+          {isRunning && <div className="task-progress" role="status" data-testid="status-task-running"><span className="progress-pulse" />{taskResult?.feature.replaceAll('-', ' ')} is processing with YouCam AI engine…</div>}
           {taskError && <div className="task-error" role="alert" data-testid="error-youcam-task"><strong>Task needs attention</strong><span>{taskError}</span><small>Check your connection, provider configuration and available units. Your image has not been saved by BeautyLoop.</small></div>}
           {taskQuery.isError && activeJobId && <div className="task-error" role="alert" data-testid="error-task-status"><strong>Couldn’t retrieve task status</strong><span>The task was submitted, but its progress could not be refreshed. Retry the task status from the task controls after checking the provider connection.</span><button type="button" onClick={() => taskQuery.refetch()} data-testid="button-retry-task-status">Retry task status</button></div>}
           {taskResult?.status === 'error' && <div className="task-error" role="alert" data-testid="error-task-result"><strong>The selected task didn’t complete</strong><span>{taskResult.errorMessage || 'The provider returned an error without more detail.'}</span><small>Try a clearer, front-facing image or check provider access and unit availability. No result has been invented.</small></div>}
@@ -627,51 +850,98 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
           {skinToneResult && (
             <div className="result-panel" data-testid="result-skin-tone">
               <div className="result-panel-heading"><span className="result-overline">REAL YOUCAM RESULT</span><span className="result-job-id">Task {skinToneResult.jobId}</span></div>
-              <h3>Returned skin color</h3>
+              <h3>Colorimetry & Undertone Analysis</h3>
               <div className="returned-color">
                 <span className="returned-color-chip" style={{ backgroundColor: skinToneResult.skinColor ?? undefined }} />
-                <span><strong>{skinToneResult.skinColorName || 'Skin color estimate'}</strong><code>{skinToneResult.skinColor}</code></span>
+                <span>
+                  <strong>{skinToneResult.skinColorName || 'Skin color estimate'}</strong>
+                  <code>{skinToneResult.skinColor}</code>
+                </span>
+                {skinToneResult.undertone && (
+                  <span
+                    style={{
+                      background: '#7c4c3e',
+                      color: '#ffffff',
+                      borderRadius: 999,
+                      padding: '4px 10px',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: '.05em',
+                      textTransform: 'uppercase',
+                      marginLeft: 'auto',
+                    }}
+                  >
+                    {skinToneResult.undertone} undertone
+                  </span>
+                )}
               </div>
-              <p className="result-disclaimer">A provider-returned color estimate, not a retailer shade match. Lighting and image conditions can affect color.</p>
+              <div style={{ display: 'flex', gap: 12, margin: '10px 0', fontSize: 11, color: '#566e60', flexWrap: 'wrap' }}>
+                {skinToneResult.lipColor && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    Natural Lip: <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: skinToneResult.lipColor, display: 'inline-block' }} /> {skinToneResult.lipColor}
+                  </span>
+                )}
+                {skinToneResult.eyeColor && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    Eye Tone: <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: skinToneResult.eyeColor, display: 'inline-block' }} /> {skinToneResult.eyeColor}
+                  </span>
+                )}
+                {skinToneResult.hairColor && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    Hair: <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: skinToneResult.hairColor, display: 'inline-block' }} /> {skinToneResult.hairColor}
+                  </span>
+                )}
+              </div>
+              <p className="result-disclaimer">A provider-returned color estimate with computed CIELAB undertone. Lighting and capture conditions can affect metrics.</p>
               {closestTone && (
                 <div className="closest-tone-note" data-testid="text-closest-foundation-shade">
                   <span style={{ backgroundColor: closestTone.hex }} />
-                  <span>Closest illustrative demo tone by CIE76: <strong>{closestTone.name}</strong> <code>{closestTone.hex}</code>. This is an approximate color comparison, not a retailer shade match.</span>
+                  <span>Closest illustrative demo tone by CIE76: <strong>{closestTone.name}</strong> <code>{closestTone.hex}</code>.</span>
                   <button type="button" onClick={() => { setSelectedSwatch(closestTone.hex); setSelectedShadeId(null); }} data-testid="button-use-closest-demo-tone">{selectedSwatch === closestTone.hex ? 'Selected' : 'Use tone'}</button>
                 </div>
               )}
               {closestShade && (
                 <div className="closest-tone-note" data-testid="text-closest-demo-tone">
                   <span style={{ backgroundColor: closestShade.shade.displayColorHex }} />
-                  <span>Closest approximate display color in the {foundation?.brand} shade list by CIE76: <strong>{closestShade.shade.id} {closestShade.shade.name}</strong> <code>{closestShade.shade.displayColorHex}</code>. This is a screen-color comparison only—not an official swatch, product match, or guarantee.</span>
+                  <span>Closest approximate display color in the {foundation?.brand} shade list by CIE76: <strong>{closestShade.shade.id} {closestShade.shade.name}</strong> <code>{closestShade.shade.displayColorHex}</code>.</span>
                   <button type="button" onClick={() => { setSelectedShadeId(closestShade.shade.id); setSelectedSwatch(null); }} data-testid={`button-use-closest-shade-${closestShade.shade.id}`}>{selectedShadeId === closestShade.shade.id ? 'Selected' : 'Use color'}</button>
                 </div>
-              )}
-              {!closestTone && !closestShade && (
-                <p className="result-disclaimer">The returned color is not a six-digit hex value, so BeautyLoop can’t compare it with the approximate foundation shade colors.</p>
               )}
             </div>
           )}
 
-          {taskResult?.status === 'success' && taskResult.feature === 'skin-tone' && !taskResult.skinColor && (
-            <div className="task-hint" data-testid="empty-skin-tone-result">The task completed, but the provider returned no skin-color value to compare.</div>
-          )}
-
           {skinAnalysisResult && (
             <div className="result-panel" data-testid="result-skin-analysis">
-              <div className="result-panel-heading"><span className="result-overline">REAL YOUCAM RESULT</span><span className="result-job-id">Task {skinAnalysisResult.jobId}</span></div>
-              <h3>Cosmetic skin insight</h3>
-              <p className="result-disclaimer">These are observations returned by the provider, not a medical diagnosis or treatment recommendation.</p>
+              <div className="result-panel-heading"><span className="result-overline">REAL YOUCAM CLINICAL RESULT</span><span className="result-job-id">Task {skinAnalysisResult.jobId}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3>10-Biomarker Clinical Analysis</h3>
+                {skinAnalysisResult.vitalityScore && (
+                  <span style={{ font: '11px var(--app-font-mono)', background: '#e2ede4', color: '#2b513a', padding: '4px 10px', borderRadius: 999, fontWeight: 700 }}>
+                    Vitality Index: {skinAnalysisResult.vitalityScore}/100
+                  </span>
+                )}
+              </div>
+              <p className="result-disclaimer">Multi-biomarker skin observations returned directly by Perfect Corp YouCam Clinical Engine. Cosmetic science data; not medical diagnosis.</p>
               {skinAnalysisResult.insights.length ? (
                 <div className="insight-list">
-                  {skinAnalysisResult.insights.map((insight, index) => (
-                    <div className="insight-item" key={`${insight.type}-${insight.region}-${index}`} data-testid={`content-skin-insight-${index}`}>
-                      <strong>{insight.type.replaceAll('_', ' ')}</strong>
-                      <span>{insight.region ? `Region: ${insight.region}` : 'Region not specified'}</span>
-                      {insight.displayScore !== null && <span>Reported display score: {insight.displayScore}</span>}
-                      {insight.displayScore === null && insight.score !== null && <span>Reported score: {insight.score}</span>}
-                    </div>
-                  ))}
+                  {skinAnalysisResult.insights.map((insight, index) => {
+                    const statusClass = insight.status === 'Attention recommended' ? '#9e3b2e' : insight.status === 'Optimal' ? '#2b513a' : '#735b44';
+                    const statusBg = insight.status === 'Attention recommended' ? '#fbeae7' : insight.status === 'Optimal' ? '#e2ede4' : '#f5ebe0';
+                    return (
+                      <div className="insight-item" key={`${insight.type}-${insight.region}-${index}`} data-testid={`content-skin-insight-${index}`}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <strong style={{ textTransform: 'capitalize' }}>{insight.type.replaceAll('_', ' ')}</strong>
+                          {insight.status && (
+                            <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 4, background: statusBg, color: statusClass, fontWeight: 600 }}>
+                              {insight.status}
+                            </span>
+                          )}
+                        </div>
+                        <span>{insight.region ? `Region: ${insight.region}` : 'Facial composite'}</span>
+                        {insight.displayScore !== null && <span>Reported score: <strong>{insight.displayScore}/100</strong></span>}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : <div className="task-hint" data-testid="empty-skin-insights">The provider returned no insight items for this task.</div>}
             </div>
@@ -680,13 +950,24 @@ function YouCamStudio({ status, statusLoading, onTaskResult }: { status?: Beauty
           {previewResult && (
             <div className="result-panel" data-testid="result-foundation-preview">
               <div className="result-panel-heading"><span className="result-overline">REAL YOUCAM PREVIEW</span><span className="result-job-id">Task {previewResult.jobId}</span></div>
-              <h3>Your live foundation preview</h3>
-              <p className="result-disclaimer">Rendered by YouCam using BeautyLoop’s approximate screen color for the selected sourced shade name. It is not the manufacturer’s actual swatch, product formula, or a retailer shade match.</p>
-              <div className="real-preview-frame"><img src={previewResult.previewUrl ?? ''} alt="Foundation try-on preview returned by YouCam" data-testid="img-youcam-preview" /></div>
+              <h3>Live AR Virtual Try-On</h3>
+              <p className="result-disclaimer">Drag the slider horizontally to compare your natural baseline photo with the live YouCam virtual try-on render.</p>
+              {photoUrl ? (
+                <BeforeAfterSlider
+                  beforeUrl={photoUrl}
+                  afterUrl={previewResult.previewUrl ?? ''}
+                  beforeLabel="Natural Baseline"
+                  afterLabel={previewResult.feature === 'complete-look' ? 'Harmonious Look AR' : previewResult.feature === 'lip-try-on' ? 'Lipstick AR Try-On' : 'Foundation AR Try-On'}
+                />
+              ) : (
+                <div className="real-preview-frame">
+                  <img src={previewResult.previewUrl ?? ''} alt="Virtual Try-On preview returned by YouCam" data-testid="img-youcam-preview" />
+                </div>
+              )}
             </div>
           )}
 
-          {taskResult?.status === 'success' && taskResult.feature === 'foundation-try-on' && !taskResult.previewUrl && (
+          {taskResult?.status === 'success' && ['foundation-try-on', 'lip-try-on', 'complete-look'].includes(taskResult.feature) && !taskResult.previewUrl && (
             <div className="task-hint" data-testid="empty-preview-result">The task completed, but the provider returned no preview image.</div>
           )}
 

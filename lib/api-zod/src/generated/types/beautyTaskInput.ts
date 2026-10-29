@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { BeautyTaskFeature } from './beautyTaskFeature';
+import type { BeautyTaskInputLipTexture } from './beautyTaskInputLipTexture';
 import type { BeautyTaskInputMimeType } from './beautyTaskInputMimeType';
 
 export interface BeautyTaskInput {
@@ -19,6 +20,9 @@ export interface BeautyTaskInput {
   mimeType: BeautyTaskInputMimeType;
   /** @pattern ^#[A-Fa-f0-9]{6}$ */
   foundationColor?: string;
+  /** @pattern ^#[A-Fa-f0-9]{6}$ */
+  lipColor?: string;
+  lipTexture?: BeautyTaskInputLipTexture;
   /**
      * @minimum 0
      * @maximum 100

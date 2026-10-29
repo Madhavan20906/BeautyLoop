@@ -8,6 +8,7 @@
 import type { BeautySkinInsight } from './beautySkinInsight';
 import type { BeautyTaskFeature } from './beautyTaskFeature';
 import type { BeautyTaskResultStatus } from './beautyTaskResultStatus';
+import type { BeautyTaskResultUndertone } from './beautyTaskResultUndertone';
 
 export interface BeautyTaskResult {
   jobId: string;
@@ -20,6 +21,29 @@ export interface BeautyTaskResult {
   skinColor: string | null;
   /** @nullable */
   skinColorName: string | null;
+  /**
+     * @nullable
+     * @pattern ^#[A-Fa-f0-9]{6}$
+     */
+  lipColor?: string | null;
+  /**
+     * @nullable
+     * @pattern ^#[A-Fa-f0-9]{6}$
+     */
+  eyeColor?: string | null;
+  /** @nullable */
+  eyeColorName?: string | null;
+  /**
+     * @nullable
+     * @pattern ^#[A-Fa-f0-9]{6}$
+     */
+  hairColor?: string | null;
+  /** @nullable */
+  hairColorName?: string | null;
+  /** @nullable */
+  undertone?: BeautyTaskResultUndertone;
+  /** @nullable */
+  vitalityScore?: number | null;
   insights: BeautySkinInsight[];
   /** @nullable */
   previewUrl: string | null;

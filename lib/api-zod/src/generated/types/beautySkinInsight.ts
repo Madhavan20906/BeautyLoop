@@ -14,4 +14,6 @@ export interface BeautySkinInsight {
   score: number | null;
   /** @nullable */
   displayScore: number | null;
+  /** @nullable */
+  status?: string | null;
 }

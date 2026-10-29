@@ -10,6 +10,9 @@ export type BeautyProductCategory = typeof BeautyProductCategory[keyof typeof Be
 
 
 export const BeautyProductCategory = {
+  cleanser: 'cleanser',
   serum: 'serum',
   moisturizer: 'moisturizer',
+  sunscreen: 'sunscreen',
+  lipstick: 'lipstick',
 } as const;

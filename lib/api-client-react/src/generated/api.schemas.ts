@@ -55,6 +55,8 @@ export const BeautyTaskFeature = {
   'skin-tone': 'skin-tone',
   'skin-analysis': 'skin-analysis',
   'foundation-try-on': 'foundation-try-on',
+  'lip-try-on': 'lip-try-on',
+  'complete-look': 'complete-look',
 } as const;
 
 export type BeautyTaskInputMimeType = typeof BeautyTaskInputMimeType[keyof typeof BeautyTaskInputMimeType];
@@ -63,6 +65,15 @@ export type BeautyTaskInputMimeType = typeof BeautyTaskInputMimeType[keyof typeo
 export const BeautyTaskInputMimeType = {
   'image/jpeg': 'image/jpeg',
   'image/png': 'image/png',
+} as const;
+
+export type BeautyTaskInputLipTexture = typeof BeautyTaskInputLipTexture[keyof typeof BeautyTaskInputLipTexture];
+
+
+export const BeautyTaskInputLipTexture = {
+  matte: 'matte',
+  glossy: 'glossy',
+  shimmer: 'shimmer',
 } as const;
 
 export interface BeautyTaskInput {
@@ -76,6 +87,9 @@ export interface BeautyTaskInput {
   mimeType: BeautyTaskInputMimeType;
   /** @pattern ^#[A-Fa-f0-9]{6}$ */
   foundationColor?: string;
+  /** @pattern ^#[A-Fa-f0-9]{6}$ */
+  lipColor?: string;
+  lipTexture?: BeautyTaskInputLipTexture;
   /**
      * @minimum 0
      * @maximum 100
@@ -114,6 +128,8 @@ export interface BeautySkinInsight {
   score: number | null;
   /** @nullable */
   displayScore: number | null;
+  /** @nullable */
+  status?: string | null;
 }
 
 export type BeautyTaskResultStatus = typeof BeautyTaskResultStatus[keyof typeof BeautyTaskResultStatus];
@@ -123,6 +139,19 @@ export const BeautyTaskResultStatus = {
   running: 'running',
   success: 'success',
   error: 'error',
+} as const;
+
+/**
+ * @nullable
+ */
+export type BeautyTaskResultUndertone = typeof BeautyTaskResultUndertone[keyof typeof BeautyTaskResultUndertone] | null;
+
+
+export const BeautyTaskResultUndertone = {
+  warm: 'warm',
+  cool: 'cool',
+  neutral: 'neutral',
+  olive: 'olive',
 } as const;
 
 export interface BeautyTaskResult {
@@ -136,6 +165,29 @@ export interface BeautyTaskResult {
   skinColor: string | null;
   /** @nullable */
   skinColorName: string | null;
+  /**
+     * @nullable
+     * @pattern ^#[A-Fa-f0-9]{6}$
+     */
+  lipColor?: string | null;
+  /**
+     * @nullable
+     * @pattern ^#[A-Fa-f0-9]{6}$
+     */
+  eyeColor?: string | null;
+  /** @nullable */
+  eyeColorName?: string | null;
+  /**
+     * @nullable
+     * @pattern ^#[A-Fa-f0-9]{6}$
+     */
+  hairColor?: string | null;
+  /** @nullable */
+  hairColorName?: string | null;
+  /** @nullable */
+  undertone?: BeautyTaskResultUndertone;
+  /** @nullable */
+  vitalityScore?: number | null;
   insights: BeautySkinInsight[];
   /** @nullable */
   previewUrl: string | null;
@@ -147,8 +199,11 @@ export type BeautyProductCategory = typeof BeautyProductCategory[keyof typeof Be
 
 
 export const BeautyProductCategory = {
+  cleanser: 'cleanser',
   serum: 'serum',
   moisturizer: 'moisturizer',
+  sunscreen: 'sunscreen',
+  lipstick: 'lipstick',
 } as const;
 
 export interface BeautyProduct {
@@ -204,8 +259,11 @@ export type BeautyCompareInputCategory = typeof BeautyCompareInputCategory[keyof
 
 
 export const BeautyCompareInputCategory = {
+  cleanser: 'cleanser',
   serum: 'serum',
   moisturizer: 'moisturizer',
+  sunscreen: 'sunscreen',
+  lipstick: 'lipstick',
 } as const;
 
 export type BeautyCompareInputPreferredAttributesItem = typeof BeautyCompareInputPreferredAttributesItem[keyof typeof BeautyCompareInputPreferredAttributesItem];

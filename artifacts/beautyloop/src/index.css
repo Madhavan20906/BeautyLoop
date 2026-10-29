@@ -449,3 +449,383 @@ a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *,*::before,*::after {scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}
 }
+
+/* === BEAUTYLOOP NEXT-GEN STUDIO & AGENTIC DERM STYLES === */
+.demo-quick-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: #fdfaf4;
+  border: 1px solid #e2dbc9;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.demo-quick-btn {
+  border: 1px solid #2e4b40;
+  border-radius: 999px;
+  background: #2e4b40;
+  color: #f7f3ea;
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .2s;
+}
+.demo-quick-btn:hover {
+  background: #3c6153;
+  transform: translateY(-1px);
+}
+.camera-toggle-btn {
+  border: 1px solid #cbbeab;
+  border-radius: 999px;
+  background: #f3efe6;
+  color: #3b5043;
+  padding: 7px 13px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .2s;
+}
+.camera-toggle-btn:hover {
+  background: #ebe5d8;
+  border-color: #638574;
+}
+.webcam-container {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #1e2823;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.webcam-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.webcam-guide-oval {
+  position: absolute;
+  width: 170px;
+  height: 220px;
+  border: 2px dashed #e4c59e;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(18, 28, 23, 0.45);
+  animation: pulse-guide 2.5s ease-in-out infinite;
+}
+@keyframes pulse-guide {
+  0%, 100% { border-color: #e4c59e; opacity: 0.9; }
+  50% { border-color: #ffffff; opacity: 1; }
+}
+.webcam-actions {
+  position: absolute;
+  bottom: 12px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+.webcam-snap-btn {
+  background: #ffffff;
+  color: #1e2823;
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-weight: 700;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+.zoom-slider-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #f7f3eb;
+  border-radius: 10px;
+  font-size: 10px;
+  color: #67756c;
+}
+.zoom-slider-bar input {
+  flex: 1;
+  accent-color: #2e4b40;
+}
+
+/* Before / After Split Slider */
+.split-slider-container {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 380px;
+  border-radius: 16px;
+  overflow: hidden;
+  user-select: none;
+  border: 1px solid #dcd5c7;
+  background: #e2ded5;
+  margin: 14px auto;
+  box-shadow: 0 10px 30px rgba(50, 60, 52, 0.12);
+}
+.split-slider-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.split-slider-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  cursor: ew-resize;
+  z-index: 10;
+}
+.split-slider-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #2e4b40;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+  font-size: 11px;
+  font-weight: 700;
+}
+.split-slider-badge {
+  position: absolute;
+  bottom: 12px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font: 9px var(--app-font-mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  background: rgba(20, 30, 25, 0.75);
+  color: #ffffff;
+  backdrop-filter: blur(4px);
+  z-index: 5;
+}
+.split-slider-badge.left { left: 12px; }
+.split-slider-badge.right { right: 12px; }
+
+/* Radar & Clinical Metrics */
+.vitality-gauge {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f7f4ec;
+  border: 1px solid #e2dac9;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin: 14px 0;
+}
+.vitality-score-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: conic-gradient(#5a8867 var(--pct, 80%), #e3dccd 0);
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 auto;
+}
+.vitality-score-inner {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #f7f4ec;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font: 700 16px var(--app-font-serif);
+  color: #2e4b40;
+}
+.vitality-score-inner span {
+  font: 7px var(--app-font-mono);
+  color: #798379;
+  margin-top: -2px;
+}
+.vitality-info strong {
+  display: block;
+  font-size: 13px;
+  color: #2e4b40;
+}
+.vitality-info p {
+  font-size: 11px;
+  color: #6a776e;
+  margin: 3px 0 0;
+  line-height: 1.5;
+}
+
+/* Agentic Derm Blueprint Card */
+.derm-blueprint-section {
+  background: #eae5d7;
+  border: 1px solid #ded6c5;
+  border-radius: 24px;
+  padding: 32px 36px;
+  margin: 50px 0 80px;
+}
+.derm-blueprint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.derm-blueprint-header h2 {
+  font: 500 clamp(28px, 3.5vw, 42px)/1.08 var(--app-font-serif);
+  letter-spacing: -.03em;
+  margin: 8px 0 4px;
+}
+.agent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #365749;
+  color: #f6f3eb;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font: 10px var(--app-font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.regimen-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+.regimen-card {
+  background: #faf8f2;
+  border: 1px solid #ded8cb;
+  border-radius: 16px;
+  padding: 22px;
+}
+.regimen-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #ece7dc;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.regimen-time {
+  font: 600 13px var(--app-font-mono);
+  color: #b87562;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.regimen-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.regimen-step-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.regimen-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ece5d7;
+  color: #556c5e;
+  font: 10px var(--app-font-mono);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.regimen-step-details strong {
+  display: block;
+  font-size: 12px;
+  color: #2d3f35;
+}
+.regimen-step-details p {
+  font-size: 10px;
+  color: #69776e;
+  margin: 3px 0 0;
+  line-height: 1.5;
+}
+.regimen-product-badge {
+  display: inline-block;
+  background: #eef2eb;
+  color: #3b5c49;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font: 9px var(--app-font-mono);
+  margin-top: 4px;
+}
+.shade-pairing-box {
+  background: #f4eee2;
+  border: 1px solid #dfd7c7;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.shade-pairing-swatches {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.shade-chip-combo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shade-circle-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px #cdbfae;
+}
+.safety-alert-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #edf3ec;
+  border: 1px solid #cbdcc9;
+  border-radius: 11px;
+  padding: 11px 15px;
+  margin-top: 18px;
+  font-size: 11px;
+  color: #395745;
+}
+.safety-alert-strip.caution {
+  background: #fbf0e8;
+  border-color: #eed5c4;
+  color: #925340;
+}
+
+@media (max-width: 768px) {
+  .regimen-grid { grid-template-columns: 1fr; }
+  .shade-pairing-box { flex-direction: column; align-items: flex-start; }
+}
