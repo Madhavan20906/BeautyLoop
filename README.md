@@ -84,7 +84,7 @@ cd BeautyLoop
 
 Ensure `.env` in the root workspace contains your YouCam API credentials:
 ```env
-YOUCAM_API_KEY=sk-wIUvOPXdI2IdugwElXKncY1D6Uoe7cSwaQf7FeTVV8ZC-u1Jghgnipx4GpvMa3ba
+YOUCAM_API_KEY=
 YOUCAM_BASE_URL=https://yce-api-01.makeupar.com
 PORT=5000
 ```
