@@ -314,11 +314,17 @@ function taskRequest(input: BeautyTaskInput, fileId: string): { path: string; bo
         src_file_id: fileId,
         effects: [
           {
-            category: "lip",
+            category: "lip_color",
+            shape: {
+              name: "original",
+            },
+            style: {
+              type: "full",
+            },
             palettes: [
               {
                 color: input.lipColor || "#B36551",
-                intensity: input.colorIntensity ?? 75,
+                colorIntensity: input.colorIntensity ?? 75,
                 texture: input.lipTexture || "matte",
               },
             ],
@@ -343,11 +349,17 @@ function taskRequest(input: BeautyTaskInput, fileId: string): { path: string; bo
       ],
     });
     effects.push({
-      category: "lip",
+      category: "lip_color",
+      shape: {
+        name: "original",
+      },
+      style: {
+        type: "full",
+      },
       palettes: [
         {
           color: input.lipColor || "#B36551",
-          intensity: input.colorIntensity ?? 75,
+          colorIntensity: input.colorIntensity ?? 75,
           texture: input.lipTexture || "matte",
         },
       ],

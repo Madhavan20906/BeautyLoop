@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bot, ShieldCheck, Sparkles, Sun, Moon, ArrowRight, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
+import { Bot, ShieldCheck, Sparkles, Sun, Moon, ArrowRight, CheckCircle2, AlertTriangle, Layers, ChevronDown, Info } from 'lucide-react';
 import type { BeautyTaskResult, BeautyProduct } from '@workspace/api-client-react';
 
 interface RoutineStep {
@@ -14,6 +14,7 @@ interface ConsultData {
   skinTypeDetected: string;
   primaryConcerns: string[];
   vitalityScore: number;
+  resilienceTier?: string;
   amRoutine: RoutineStep[];
   pmRoutine: RoutineStep[];
   suggestedShadePairing: {
@@ -39,6 +40,159 @@ interface AgenticDermBlueprintProps {
   taskResult: BeautyTaskResult | null;
   onSelectProduct: (product: BeautyProduct) => void;
   onApplyShadePairing?: (foundationHex: string, lipHex: string) => void;
+}
+
+function AnimatedVitalityGauge({ score, tier }: { score: number; tier?: string }) {
+  const [displayScore, setDisplayScore] = useState(0);
+  const [showDetails, setShowDetails] = useState(false);
+
+  useEffect(() => {
+    let startTimestamp: number | null = null;
+    const duration = 1200; // ms
+    const startVal = 0;
+    const targetVal = score;
+
+    function step(timestamp: number) {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      // easeOutCubic curve
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setDisplayScore(Math.round(startVal + (targetVal - startVal) * ease));
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    }
+    const animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
+  }, [score]);
+
+  const color = score >= 80 ? '#387c53' : score >= 65 ? '#c28336' : '#b85c48';
+  const bgRing = score >= 80 ? '#dbece0' : score >= 65 ? '#f5e8d3' : '#f5ded8';
+  const tierLabel = tier || (score >= 80 ? 'Optimal Barrier' : score >= 65 ? 'Balanced Barrier' : 'Hydration Focus');
+
+  // SVG circular stroke calculation
+  const radius = 24;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (circumference * displayScore) / 100;
+
+  return (
+    <div
+      className="vitality-gauge interactive"
+      style={{
+        margin: 0,
+        padding: '12px 18px',
+        cursor: 'pointer',
+        position: 'relative',
+        background: '#f8f5ee',
+        border: '1px solid #dfd7c5',
+        borderRadius: 16,
+        boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      }}
+      onClick={() => setShowDetails(!showDetails)}
+      title="Click to view biomarker calculation breakdown"
+    >
+      <div style={{ position: 'relative', width: 56, height: 56, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        <svg width="56" height="56" viewBox="0 0 56 56" style={{ transform: 'rotate(-90deg)' }}>
+          <circle
+            cx="28"
+            cy="28"
+            r={radius}
+            stroke={bgRing}
+            strokeWidth="5"
+            fill="transparent"
+          />
+          <circle
+            cx="28"
+            cy="28"
+            r={radius}
+            stroke={color}
+            strokeWidth="5"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            fill="transparent"
+            style={{ transition: 'stroke-dashoffset 0.1s linear, stroke 0.4s ease' }}
+          />
+        </svg>
+        <div
+          style={{
+            position: 'absolute',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            font: '700 15px var(--app-font-serif)',
+            color: '#253d33',
+            pointerEvents: 'none',
+          }}
+        >
+          {displayScore}
+          <span style={{ font: '8px var(--app-font-mono)', color: '#778278', marginTop: -2 }}>
+            /100
+          </span>
+        </div>
+      </div>
+
+      <div className="vitality-info" style={{ minWidth: 130 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <strong style={{ fontSize: 11.5, color: '#253d33', margin: 0 }}>Skin Vitality Index</strong>
+          <span
+            style={{
+              display: 'inline-block',
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: color,
+              boxShadow: `0 0 6px ${color}88`,
+            }}
+          />
+        </div>
+        <p style={{ fontSize: 9.5, color: '#55695e', margin: '3px 0 1px', fontWeight: 600 }}>
+          {tierLabel}
+        </p>
+        <span style={{ fontSize: 8.5, color: '#978577', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 2 }}>
+          {showDetails ? 'Hide breakdown ▴' : 'Click breakdown ▾'}
+        </span>
+      </div>
+
+      {showDetails && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 8px)',
+            right: 0,
+            background: '#ffffff',
+            border: '1px solid #dcd4c3',
+            borderRadius: 12,
+            padding: '12px 14px',
+            boxShadow: '0 8px 24px rgba(35,56,44,0.12)',
+            zIndex: 40,
+            width: 250,
+            fontSize: 10,
+            color: '#34453b',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <strong style={{ display: 'block', marginBottom: 6, color: '#1f3429', fontSize: 11 }}>
+            Biomarker Resilience Synthesis
+          </strong>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span>Hydration & Radiance</span>
+            <span style={{ color: '#2f7a4e', fontWeight: 600 }}>+ Positive Factor</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span>Sebum, Pores & Texture</span>
+            <span style={{ color: '#b26839', fontWeight: 600 }}>- Regulated Factor</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #ede8de', paddingTop: 6, marginTop: 6 }}>
+            <strong>Calculated Score</strong>
+            <strong style={{ color, fontSize: 11 }}>{score} / 100</strong>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AgenticDermBlueprint({
@@ -122,21 +276,8 @@ export function AgenticDermBlueprint({
             {data.summary}
           </p>
         </div>
-        <div className="vitality-gauge" style={{ margin: 0, padding: '12px 18px' }}>
-          <div
-            className="vitality-score-circle"
-            style={{ ['--pct' as any]: `${data.vitalityScore}%`, width: 54, height: 54 }}
-          >
-            <div className="vitality-score-inner" style={{ width: 42, height: 42, fontSize: 14 }}>
-              {data.vitalityScore}
-              <span>Index</span>
-            </div>
-          </div>
-          <div className="vitality-info">
-            <strong style={{ fontSize: 11 }}>Skin Vitality Score</strong>
-            <p style={{ fontSize: 9 }}>Biomarker resilience baseline</p>
-          </div>
-        </div>
+
+        <AnimatedVitalityGauge score={data.vitalityScore} tier={data.resilienceTier} />
       </div>
 
       {/* Primary Diagnostic Concerns */}

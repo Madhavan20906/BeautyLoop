@@ -1,115 +1,139 @@
-# ✨ BeautyLoop
-> **Autonomous Agentic Dermatological AI & Dual Virtual Try-On Studio**  
-> *Powered by Perfect Corp YouCam APIs (`Skin AI`, `Colorimetry`, `Foundation AR VTO`, `Lipstick AR VTO`, `Dual Look VTO`)*
+# BeautyLoop
+> **Autonomous Dermatological AI & Dual Virtual Try-On Studio**  
+> *Powered by Perfect Corp YouCam APIs (Clinical Skin AI, Colorimetry, and Dual AR Virtual Try-On)*
 
 ---
 
-## 🏆 YouCam API Hackathon 10/10 Scorecard
+## Overview
 
-| Judging Dimension | Score | Execution Receipts in BeautyLoop |
-| :--- | :---: | :--- |
-| **Technological Implementation** | **10 / 10** | **Deep, Multi-Endpoint Provider Integration**: Integrates YouCam S2S REST APIs (`/s2s/v2.0/task/skin-tone-analysis`, `/s2s/v2.0/task/skin-analysis`, `/s2s/v2.0/task/makeup-vto`), AWS S3 pre-signed direct upload, full polling state machine, CIELAB delta-E shade matching, and clinical biomarker mapping. |
-| **Design & User Experience** | **10 / 10** | **Production Editorial Aesthetic**: Fluid before/after AR drag comparison slider, live webcam selfie capture with oval alignment guide, 10-biomarker radial gauges, and clean, transparent clinical decision cards. |
-| **Potential Real-World Impact** | **10 / 10** | **Solves the \$60B Beauty eCommerce Return Crisis**: Replaces blind guesswork with verified formulation science, source-backed ingredient receipts, and realistic virtual try-on so buyers know what they are choosing before checkout. |
-| **Quality of Idea & Agentic AI** | **10 / 10** | **Autonomous Agentic Derm Blueprint**: Not a wrapper. An autonomous Derm Concierge synthesizes clinical biomarkers into AM/PM regimens, scans for chemical contraindications, and computes colorimetric synergy across foundations and lipsticks. |
+Online beauty and skincare commerce suffers from a dual challenge: consumers cannot accurately test shade matches before purchasing, and formulation marketing frequently obscures whether ingredients suit an individual's skin barrier health. The result is consumer hesitation, product dissatisfaction, and extensive retail returns.
+
+**BeautyLoop** addresses this challenge through an evidence-based decision workflow. By bridging clinical diagnostic biometrics with CIELAB colorimetry and dual augmented-reality try-on, BeautyLoop enables consumers to inspect their skin health, explore harmonized complexion pairings, verify source-backed product ingredients, and make confident purchasing decisions without marketing guesswork.
 
 ---
 
-## 🚀 Key Innovations & Features
-
-### 1. 🔬 10-Biomarker Clinical Skin Analysis
-Connects to Perfect Corp's YouCam Clinical Engine to extract 10 medical-grade cosmetic biomarkers:
-- **Pores**, **Texture**, **Acne**, **Wrinkles**, **Moisture**, **Oiliness**, **Redness**, **Radiance**, **Firmness**, and **Eye Bags**.
-- Automatically computes the composite **Skin Vitality Index (0–100)** with clinical status tagging (`Optimal`, `Balanced`, `Attention recommended`).
-
-### 2. 🎨 CIELAB Colorimetry & Undertone Analysis
-- Analyzes facial skin tone, lip shade, eye color, and hair color.
-- Converts sRGB to CIE $L^*a^*b^*$ color space to accurately determine **Warm**, **Cool**, **Neutral**, or **Olive** undertones.
-- Uses CIE76 Delta-E Euclidean color difference formulas to match users with sourced foundation shades.
-
-### 3. 💄 Dual Virtual Try-On (Foundation + Lipstick + Complete Look)
-- **Foundation AR Try-On**: Real-time shade rendering with custom color intensity, coverage depth, and skin glow sliders.
-- **Lipstick AR Try-On**: Multi-shade palette (Nude Nuance, Touch of Spice, Ruby Woo, Velvet Teddy, Pillow Talk, Pioneer) with **Matte**, **Glossy**, and **Shimmer** finishes.
-- **Complete Harmonious Look Dual VTO**: Simulates dual makeup effects simultaneously in a single YouCam AR payload.
-
-### 4. 🪞 Interactive Before / After Split Slider
-- Drag-to-compare overlay slider with seamless touch and mouse listeners.
-- Allows buyers to inspect natural baseline skin against YouCam AR try-on results with sub-pixel precision.
-
-### 5. 📸 Live Webcam Studio & Instant Demo Selfie
-- Integrated browser webcam feed with real-time oval alignment guide and 3-second countdown snapshot timer.
-- 1-Click **Instant Demo Portrait** pre-configured for judges to test live YouCam calls without camera access or file hunting.
-- Smart facial framing auto-zoom (1.35x–1.5x) to satisfy YouCam's clinical width requirements (>60% of frame).
-
-### 6. 🤖 Autonomous Agentic Derm Blueprint
-- Multi-step diagnostic engine that parses biometric findings to classify skin typology (e.g. *Dehydrated Oily with Barrier Impairment*).
-- Formulates a 4-step AM defense protocol and 3-step PM nocturnal cellular repair regimen.
-- Built-in **Contraindication Conflict Matrix**: Flags ingredient clashes (e.g., Retinol + Salicylic Acid / BHA clash, Vitamin C + Retinol timing separation).
-
----
-
-## 🏗️ Architecture & Technology Stack
+## Core System Architecture
 
 ```mermaid
 flowchart TD
-    User([User / Judge]) --> UI[BeautyLoop Frontend\nReact 19 + TailwindCSS + Vite]
-    UI --> Webcam[Live Webcam / Instant Demo Selfie\nOval Face Alignment Guide]
-    UI --> Slider[Interactive Before/After\nAR Comparison Slider]
-    UI --> Blueprint[Agentic Derm Blueprint\nAM/PM Regimens & Contraindications]
+    subgraph Client ["Client Interface (React 19 + Vite)"]
+        UI[Biometric Studio & Navigation]
+        Webcam[Live Webcam / Demo Capture\nFraming Guide]
+        Slider[Interactive Before/After\nAR Comparison Slider]
+        Blueprint[Agentic Derm Blueprint\nRegimen & Contraindications]
+        Shortlist[Source-Backed Comparator\nDecision Card Export]
+    end
 
-    UI --> API[BeautyLoop Express Server\nNode.js / TypeScript]
-    API --> YouCamClient[YouCam Provider Client\nAPI Key + S3 Presigned Upload]
-    
-    YouCamClient --> S3[(AWS S3 Storage\nSecure Temporary Asset Upload)]
-    YouCamClient --> YCE[Perfect Corp YouCam API Gateway\nIndia & Global Endpoints]
-    
-    YCE --> ToneAPI[/s2s/v2.0/task/skin-tone-analysis/]
-    YCE --> SkinAPI[/s2s/v2.0/task/skin-analysis\n10 Clinical Biomarkers/]
-    YCE --> VTOAPI[/s2s/v2.0/task/makeup-vto\nFoundation + Lip AR/]
+    subgraph Server ["Application Server (Node.js / Express / TypeScript)"]
+        API[Express REST Gateway]
+        Zod[Zod Request / Response Validation]
+        DermEngine[Autonomous Derm Logic & Routine Engine]
+        Comparator[Product Formulation Matcher]
+    end
+
+    subgraph YouCam ["Perfect Corp Provider Infrastructure"]
+        S3[(AWS S3 Presigned Upload)]
+        Gateway[YouCam S2S API Gateway]
+        SkinTone[/s2s/v2.0/task/skin-tone-analysis/]
+        SkinAI[/s2s/v2.0/task/skin-analysis/]
+        VTO[/s2s/v2.0/task/makeup-vto/]
+    end
+
+    UI --> API
+    API --> Zod
+    Zod --> DermEngine
+    Zod --> Comparator
+    API --> S3
+    API --> Gateway
+    Gateway --> SkinTone
+    Gateway --> SkinAI
+    Gateway --> VTO
 ```
 
 ---
 
-## ⚡ Quick Start for Judges (2-Minute Setup)
+## Key Capabilities
+
+### 1. 10-Biomarker Clinical Skin Diagnostic Engine
+Integrates directly with YouCam's Clinical Skin AI service to observe 10 dermatological cosmetic dimensions:
+- **Pores**, **Texture**, **Acne**, **Wrinkles**, **Moisture**, **Oiliness**, **Redness**, **Radiance**, **Firmness**, and **Eye Bags**.
+- Synthesizes findings into a dynamic **Skin Vitality Index (0–100)** calculated using weighted biomarker equilibrium, tracking both positive barrier factors (hydration, radiance, firmness) and regulatory factors (sebum, redness, pore dilation).
+
+### 2. CIELAB Colorimetry & Undertone Analysis
+- Computes facial skin color, natural lip pigment, eye color, and hair color.
+- Projects color space data into CIE $L^*a^*b^*$ to evaluate facial temperature across **Warm**, **Cool**, **Neutral**, and **Olive** undertones.
+- Employs CIE76 Delta-E Euclidean distance metrics to identify optimal foundation shade alignments from catalog formulations.
+
+### 3. Dual AR Virtual Try-On Studio (Foundation + Lipstick)
+- **Foundation Simulation**: Configurable color intensity, coverage depth, and skin glow parameters.
+- **Lipstick Simulation**: Multi-texture support across **Matte**, **Glossy**, and **Shimmer** finishes.
+- **Complete Harmonious Look**: Dispatches paired foundation and lip parameters in a single unified `/s2s/v2.0/task/makeup-vto` payload to minimize latency and credit consumption.
+- **Interactive Before/After Slider**: Touch- and mouse-responsive split slider enabling sub-pixel comparison between baseline skin and simulated AR results.
+
+### 4. Autonomous Agentic Derm Blueprint
+- Evaluates biometric observations against dermatological formulation matrices to determine skin typology (e.g., *Dehydrated Oily Skin with Impaired Barrier*).
+- Compiles tailored **4-step AM Defense** and **3-step PM Nocturnal Cellular Repair** routines with clinical rationale.
+- **Contraindication Conflict Matrix**: Screens active formulations to flag incompatible active combinations (e.g., Retinol + Salicylic Acid / BHA conflicts or high-strength Vitamin C clashes).
+
+### 5. Source-Backed Product Shortlist & Decision Card
+- Cross-references catalog items with verified brand and retailer formulation records.
+- Explicitly flags unverified claims (e.g., unconfirmed fungal acne safety or pregnancy suitability) rather than making assumptions.
+- Generates a portable, copyable **Clinical Decision Card** capturing the selected product, retailer source receipts, observed price date, user criteria, and biometric scan results.
+
+---
+
+## Technical Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, TypeScript, Vite, TailwindCSS, Lucide Icons, Canvas API |
+| **Backend** | Node.js, Express, TypeScript, Zod Schema Validation |
+| **Integration** | Perfect Corp YouCam S2S REST APIs, AWS S3 Direct Upload Pipeline |
+| **Monorepo** | pnpm workspaces, Turborepo-style build pipeline |
+
+---
+
+## Local Setup & Development
 
 ### Prerequisites
-- Node.js `v20+` or `v24+`
-- pnpm `v10+` or npm
+- Node.js `v20` or higher
+- `pnpm` (`npm install -g pnpm`)
 
-### 1. Clone & Configure Environment
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/Madhavan20906/BeautyLoop.git
 cd BeautyLoop
 ```
 
-Ensure `.env` in the root workspace contains your YouCam API credentials:
+### 2. Configure Environment Variables
+Create a `.env` file in the root directory:
 ```env
-YOUCAM_API_KEY=
+YOUCAM_API_KEY=your_youcam_api_key_here
 YOUCAM_BASE_URL=https://yce-api-01.makeupar.com
 PORT=5000
 ```
 
-### 2. Launch the Application
-Run the unified start command:
+### 3. Install Dependencies & Build
 ```bash
-npm start
+pnpm install
+pnpm build
 ```
 
-Open your browser at:
+### 4. Start Development Server
+```bash
+pnpm start
 ```
-http://localhost:5000
-```
-
-> **Pro-Tip for Judges**: In Section 02 (*Color & Skin*), click **"Demo Portrait"** to immediately load a calibrated selfie, check the consent checkbox, and click **"10-Biomarker clinical skin insight"** or **"Complete Harmonious Look dual VTO"** to witness live YouCam AI processing in seconds!
+Navigate to `http://localhost:5000` in your browser.
 
 ---
 
-## 🛡️ Privacy & Formulation Ethics
-1. **Consent-First Architecture**: No image is ever transmitted to Perfect Corp without explicit user consent.
-2. **Ephemeral Processing**: Selfies are held only in browser memory and are deleted upon session exit. BeautyLoop stores no biometric records.
-3. **Cosmetic Science vs. Medical Advice**: BeautyLoop provides cosmetic formulation intelligence and virtual preview evidence; it never claims to provide medical diagnosis.
+## Privacy & Data Handling
+
+- **Consent-First Operation**: Biometric analysis and AR try-on tasks execute only following explicit user consent.
+- **Ephemeral Asset Lifecycle**: Images are processed strictly for task execution and are not permanently retained.
+- **Non-Diagnostic Scope**: BeautyLoop provides cosmetic formulation analysis and simulated visualization for retail exploration; it does not offer medical diagnoses or clinical prescriptions.
 
 ---
 
-## 📄 License
-MIT © 2026 BeautyLoop Team. Built with pride for the **YouCam API Skin AI & eCommerce VTO Hackathon**.
+## License
+MIT License. Built for the YouCam API Skin AI & eCommerce Virtual Try-On Initiative.

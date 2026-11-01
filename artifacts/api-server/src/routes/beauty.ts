@@ -137,6 +137,39 @@ router.post("/beauty/consult", (req, res) => {
     primaryConcerns.push("Maintenance of skin barrier homeostasis and preventive antioxidant defense");
   }
 
+  // Dynamically calculate Vitality Score from clinical biomarker observations
+  let calculatedVitality: number;
+  if (typeof vitalityScore === "number" && vitalityScore > 0) {
+    calculatedVitality = vitalityScore;
+  } else if (insights.length > 0) {
+    let penaltySum = 0;
+    let penaltyCount = 0;
+    let bonusSum = 0;
+    let bonusCount = 0;
+
+    for (const item of insights) {
+      const val = item.displayScore ?? (typeof item.score === "number" ? Math.round(item.score * 100) : 40);
+      if (["pore", "acne", "wrinkle", "oiliness", "redness", "eye_bag", "texture"].includes(item.type)) {
+        penaltySum += val;
+        penaltyCount += 1;
+      } else if (["radiance", "moisture", "firmness"].includes(item.type)) {
+        bonusSum += val;
+        bonusCount += 1;
+      }
+    }
+
+    const avgPenalty = penaltyCount ? penaltySum / penaltyCount : 30;
+    const avgBonus = bonusCount ? bonusSum / bonusCount : 70;
+    const score = Math.round(100 - avgPenalty * 0.55 + avgBonus * 0.35 - 5);
+    calculatedVitality = Math.min(98, Math.max(45, score));
+  } else {
+    const stressOffset = Math.round((oiliness * 0.2) + (redness * 0.25) + (acne * 0.3));
+    const vitalityBoost = Math.round((moisture * 0.3) + (radiance * 0.25));
+    calculatedVitality = Math.max(52, Math.min(95, 80 - stressOffset + vitalityBoost));
+  }
+
+  const resilienceTier = calculatedVitality >= 80 ? "Optimal Barrier Resilience" : calculatedVitality >= 65 ? "Balanced Skin Barrier" : "Targeted Hydration Focus";
+
   // 2. Build AM / PM Regimen from verified catalog
   const amRoutine: Array<{ step: string; category: string; product: typeof beautyProducts[0]; reason: string }> = [];
   const pmRoutine: Array<{ step: string; category: string; product: typeof beautyProducts[0]; reason: string }> = [];
@@ -278,10 +311,11 @@ router.post("/beauty/consult", (req, res) => {
   ];
 
   res.json({
-    summary: `Autonomous Derm Blueprint: Detected ${skinTypeDetected} with ${vitalityScore ? `${vitalityScore}/100 Vitality Index` : "verified biomarker balance"}.`,
+    summary: `Autonomous Derm Blueprint: Detected ${skinTypeDetected} (${resilienceTier}) with a calculated ${calculatedVitality}/100 Vitality Index based on biomarker equilibrium.`,
     skinTypeDetected,
     primaryConcerns,
-    vitalityScore: vitalityScore ?? 82,
+    vitalityScore: calculatedVitality,
+    resilienceTier,
     amRoutine,
     pmRoutine,
     suggestedShadePairing: {

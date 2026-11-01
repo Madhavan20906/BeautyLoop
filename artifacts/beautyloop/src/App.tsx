@@ -31,6 +31,35 @@ const demoToneSwatches = [
   { name: 'Cocoa', hex: '#613C31' },
 ];
 
+function BeautyLoopMark({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ borderRadius: 10, flexShrink: 0, boxShadow: '0 2px 8px rgba(27,47,37,0.15)' }}>
+      <defs>
+        <linearGradient id="nav-bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#1B2F25" />
+          <stop offset="100%" stopColor="#284435" />
+        </linearGradient>
+        <linearGradient id="nav-rose-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#F3D1C2" />
+          <stop offset="50%" stopColor="#D49B83" />
+          <stop offset="100%" stopColor="#B87562" />
+        </linearGradient>
+        <linearGradient id="nav-amber-glow" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#E8C695" />
+          <stop offset="100%" stopColor="#FCEFD8" />
+        </linearGradient>
+      </defs>
+      <rect width="180" height="180" rx="44" fill="url(#nav-bg-grad)" />
+      <rect x="2" y="2" width="176" height="176" rx="42" stroke="rgba(212,155,131,0.3)" strokeWidth="2.5" />
+      <path d="M54 134 C42 120 40 92 52 74 C66 54 94 52 112 68 C128 82 136 106 126 122 C116 138 92 142 78 132 C68 124 66 112 72 102 C80 88 106 82 120 94"
+            stroke="url(#nav-rose-gold)" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M68 84 C82 68 108 72 118 90 C124 102 118 116 106 120 C96 124 84 116 82 106 C80 94 92 86 102 88"
+            stroke="url(#nav-amber-glow)" strokeWidth="5" strokeLinecap="round" fill="none" opacity="0.9" />
+      <circle cx="98" cy="94" r="5" fill="#FFF2DF" />
+    </svg>
+  );
+}
+
 function Home() {
   const statusQuery = useGetBeautyStatus({ query: { queryKey: getGetBeautyStatusQueryKey() } });
   const productsQuery = useGetBeautyProducts({ query: { queryKey: getGetBeautyProductsQueryKey() } });
@@ -100,7 +129,7 @@ function Home() {
     <div className="app-shell">
       <header className="topbar">
         <a href="#top" className="brand" data-testid="link-home" aria-label="BeautyLoop home">
-          <span className="brand-mark" aria-hidden="true">b</span>
+          <BeautyLoopMark size={32} />
           <span className="brand-name">beautyloop</span>
         </a>
         <div className="topbar-note" data-testid="status-studio-note">
@@ -916,7 +945,19 @@ function YouCamStudio({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3>10-Biomarker Clinical Analysis</h3>
                 {skinAnalysisResult.vitalityScore && (
-                  <span style={{ font: '11px var(--app-font-mono)', background: '#e2ede4', color: '#2b513a', padding: '4px 10px', borderRadius: 999, fontWeight: 700 }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    font: '11px var(--app-font-mono)',
+                    background: '#e2ede4',
+                    color: '#2b513a',
+                    padding: '4px 12px',
+                    borderRadius: 999,
+                    fontWeight: 700,
+                    border: '1px solid #c2dbca',
+                  }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3ba66d', boxShadow: '0 0 6px #3ba66d' }} />
                     Vitality Index: {skinAnalysisResult.vitalityScore}/100
                   </span>
                 )}
