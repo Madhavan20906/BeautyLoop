@@ -515,6 +515,7 @@ function YouCamStudio({
       setUploadError('');
       setTaskError('');
       setShowWebcam(false);
+      setZoomLevel(1.0);
     } catch {
       setUploadError('Could not load demo portrait.');
     }
