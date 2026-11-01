@@ -55,6 +55,8 @@ export function AgenticDermBlueprint({
       return;
     }
 
+    const currentTask = taskResult;
+
     async function fetchConsult() {
       setLoading(true);
       try {
@@ -63,13 +65,13 @@ export function AgenticDermBlueprint({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             skinTone: {
-              skinColor: taskResult.skinColor,
-              skinColorName: taskResult.skinColorName,
-              undertone: taskResult.undertone,
-              lipColor: taskResult.lipColor,
+              skinColor: currentTask.skinColor,
+              skinColorName: currentTask.skinColorName,
+              undertone: currentTask.undertone,
+              lipColor: currentTask.lipColor,
             },
-            insights: taskResult.insights,
-            vitalityScore: taskResult.vitalityScore,
+            insights: currentTask.insights,
+            vitalityScore: currentTask.vitalityScore,
           }),
         });
         if (res.ok) {
