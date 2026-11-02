@@ -136,4 +136,4 @@ Navigate to `http://localhost:5000` in your browser.
 ---
 
 ## License
-MIT License. Built for the YouCam API Skin AI & eCommerce Virtual Try-On Initiative.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. Built for the YouCam API Skin AI & eCommerce Virtual Try-On Initiative.
